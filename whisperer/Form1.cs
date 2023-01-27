@@ -18,6 +18,8 @@ namespace whisperer
         ArrayList glbarray = new ArrayList();
         string glbmodel = "";
         int completed = 0;
+        string glboutdir;
+        int glbwaittime = 0;
 
         public Form1()
         {
@@ -107,6 +109,7 @@ namespace whisperer
             fastObjectListView1.ClearObjects();
             setcount();
             completed = 0;
+            label5.Text = "0";
         }
 
         long getwhispersize()
@@ -143,7 +146,7 @@ namespace whisperer
                 {
                     Process proc = new Process();
                     proc.StartInfo.FileName = "ffmpeg.exe";
-                    string outname = Path.Combine(textBox1.Text, Path.GetFileName(filename));
+                    string outname = Path.Combine(glboutdir, Path.GetFileName(filename));
                     int i = outname.LastIndexOf('.');
                     if (i == -1)
                         continue;
@@ -180,15 +183,29 @@ namespace whisperer
                 {
                     Process proc = new Process();
                     proc.StartInfo.FileName = @"whisper.exe";
-                    string inname = Path.Combine(textBox1.Text, Path.GetFileName(filename));
+                    string inname = Path.Combine(glboutdir, Path.GetFileName(filename));
                     int i = inname.LastIndexOf('.');
                     if (i == -1)
                         continue;
                     inname = inname.Remove(i) + ".wav";
-                    proc.StartInfo.Arguments = "--output_dir " + textBox1.Text + " --language en --device cuda --model \"" + glbmodel + "\" \"" + inname + "\"";
+                    proc.StartInfo.Arguments = "--output_dir \"" + glboutdir + "\" --language en --device cuda --model \"" + glbmodel + "\" \"" + inname + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
-                    int wlen = Process.GetProcessesByName("whisper").Length;
+                    int wlen = Process.GetProcessesByName("whisper").Length;                    
+
+                    fillmemvars();
+                    long neededmem = 2700000000;
+                    if (glbmodel.StartsWith("medium") || glbmodel.StartsWith("large"))
+                        neededmem = 7000000000;
+                    while (freemem < neededmem && !cancel)
+                    {
+                        Thread.Sleep(1000);
+                        fillmemvars();
+                    }
+
+                    if (cancel)
+                        break;
+
                     proc.EnableRaisingEvents = true;
                     proc.Exited += Proc_Exited;
                     proc.Start();
@@ -204,7 +221,7 @@ namespace whisperer
                         whispersize = getwhispersize();
                         if (whispersize > 0)
                         {
-                            Thread.Sleep(20000);
+                            Thread.Sleep(glbwaittime);
                             whispersize = getwhispersize();
                             fillmemvars();
                         }
@@ -271,11 +288,16 @@ namespace whisperer
                         return;
                     glbarray.Clear();
                     glbmodel = comboBox1.Text;
+                    glbwaittime = 30000;
+                    if (glbmodel.StartsWith("medium") || glbmodel.StartsWith("large"))
+                        glbwaittime = 60000;
                     foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                         glbarray.Add(filename.filename);
                     cancel = false;
                     button3.Text = "Cancel";
                     completed = 0;
+                    label5.Text = "0";
+                    glboutdir = textBox1.Text;
                     Thread thr = new Thread(() =>
                     {
                         convertalltowav();
