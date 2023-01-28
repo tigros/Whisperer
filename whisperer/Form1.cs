@@ -191,7 +191,6 @@ namespace whisperer
                     proc.StartInfo.Arguments = "--output_dir \"" + glboutdir + "\" --language en --device cuda --model \"" + glbmodel + "\" \"" + inname + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
-                    int wlen = Process.GetProcessesByName("whisper").Length;                    
 
                     fillmemvars();
                     long neededmem = 2700000000;
@@ -206,12 +205,13 @@ namespace whisperer
                     if (cancel)
                         break;
 
+                    int wlen = Process.GetProcessesByName("whisper").Length;
                     proc.EnableRaisingEvents = true;
                     proc.Exited += Proc_Exited;
                     proc.Start();
                     
                     while (Process.GetProcessesByName("whisper").Length == wlen)
-                        Thread.Sleep(1000);
+                        Thread.Sleep(10);
 
                     long whispersize = 0;
 
