@@ -138,21 +138,26 @@ namespace whisperer
             return whispersize;
         }
 
+        bool srtexists(string filename)
+        {
+            return checkBox1.Checked && File.Exists(filename + ".srt");
+        }
+
         void convertalltowav()
         {
             try
             {
                 foreach (string filename in glbarray)
                 {
-                    Process proc = new Process();
-                    proc.StartInfo.FileName = "ffmpeg.exe";
                     string outname = Path.Combine(glboutdir, Path.GetFileName(filename));
                     int i = outname.LastIndexOf('.');
                     if (i == -1)
                         continue;
                     outname = outname.Remove(i) + ".wav";
-                    if (File.Exists(outname))
+                    if (File.Exists(outname) || srtexists(outname))
                         continue;
+                    Process proc = new Process();
+                    proc.StartInfo.FileName = "ffmpeg.exe";
                     proc.StartInfo.Arguments = "-y -i \"" + filename + "\" -vn -ar 16000 -ac 1 -ab 32k -af volume=1.75 -f wav \"" + outname + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
@@ -181,13 +186,18 @@ namespace whisperer
 
                 foreach (string filename in glbarray)
                 {
-                    Process proc = new Process();
-                    proc.StartInfo.FileName = @"whisper.exe";
                     string inname = Path.Combine(glboutdir, Path.GetFileName(filename));
                     int i = inname.LastIndexOf('.');
                     if (i == -1)
                         continue;
                     inname = inname.Remove(i) + ".wav";
+                    if (srtexists(inname))
+                    {
+                        Proc_Exited(null, null);
+                        continue;
+                    }
+                    Process proc = new Process();
+                    proc.StartInfo.FileName = @"whisper.exe";
                     proc.StartInfo.Arguments = "--output_dir \"" + glboutdir + "\" --language en --device cuda --model \"" + glbmodel + "\" \"" + inname + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
@@ -324,6 +334,23 @@ namespace whisperer
         private void fastObjectListView1_SelectionChanged(object sender, EventArgs e)
         {
             setcount();
+        }        
+
+        private void fastObjectListView1_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+            else
+                e.Effect = DragDropEffects.None;
+        }
+
+        private void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
+        {
+            foreach (string file in (string[])e.Data.GetData(DataFormats.FileDrop))
+            {
+                if (!fexists(file))
+                    fastObjectListView1.AddObject(new filenameline(file));
+            }
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
