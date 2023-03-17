@@ -88,7 +88,7 @@ namespace whisperer
 
         void fillmemvars()
         {
-            totmem = getvideomem();
+            //totmem = getvideomem();
 
             NvDisplayDriverMemoryInfo memoryInfo = new NvDisplayDriverMemoryInfo();
             memoryInfo.Version = NVAPI.DISPLAY_DRIVER_MEMORY_INFO_VER;
@@ -235,7 +235,7 @@ namespace whisperer
                     else if (glbwaittime == 20000)
                         neededmem = 4300000000;
 
-                    while (freemem < neededmem && !cancel)
+                    while ((freemem < neededmem || Process.GetProcessesByName("main").Length >= numericUpDown1.Value) && !cancel)
                     {
                         Thread.Sleep(1000);
                         fillmemvars();
