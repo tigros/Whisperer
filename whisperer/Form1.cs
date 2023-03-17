@@ -171,8 +171,9 @@ namespace whisperer
                     int i = outname.LastIndexOf('.');
                     if (i == -1)
                         continue;
-                    outname = outname.Remove(i) + ".wav";
-                    if (File.Exists(outname) || srtexists(outname))
+                    string tmp = outname.Remove(i);
+                    outname = tmp + ".wav";
+                    if (File.Exists(outname) || srtexists(tmp))
                         continue;
                     Process proc = new Process();
                     proc.StartInfo.FileName = "ffmpeg.exe";
@@ -212,7 +213,7 @@ namespace whisperer
                     inname = tmp + ".wav";
                     string outname = tmp + ".srt";
 
-                    if (srtexists(inname))
+                    if (srtexists(tmp))
                     {
                         Proc_Exited(null, null);
                         continue;
