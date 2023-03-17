@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -18,8 +19,9 @@ namespace whisperer
         ArrayList glbarray = new ArrayList();
         string glbmodel = "";
         int completed = 0;
-        string glboutdir;
+        string glboutdir, glblang;
         int glbwaittime = 0;
+        Dictionary<string, string> langs = new Dictionary<string, string>();
 
         public Form1()
         {
@@ -47,7 +49,23 @@ namespace whisperer
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            NVAPI.NvAPI_EnumNvidiaDisplayHandle(0, ref displayHandle);            
+            NVAPI.NvAPI_EnumNvidiaDisplayHandle(0, ref displayHandle);
+            if (File.Exists("languageCodez.tsv"))
+            {
+                foreach (string line in File.ReadLines("languageCodez.tsv"))
+                {
+                    string[] lang = line.Split('\t');
+                    langs.Add(lang[2], lang[0]);
+                    comboBox1.Items.Add(lang[2]);
+                }
+            }
+            else
+            {
+                MessageBox.Show("languageCodez.tsv missing!");
+                langs.Add("english", "en");
+                comboBox1.Items.Add("english");
+            }
+            comboBox1.Text = "english";
         }
 
         long getvideomem()
@@ -119,7 +137,7 @@ namespace whisperer
             {
                 Process proc = new Process();
                 proc.StartInfo.FileName = "GPUmembyproc.exe";
-                proc.StartInfo.Arguments = "python.exe";
+                proc.StartInfo.Arguments = "main.exe";
                 proc.StartInfo.RedirectStandardInput = true;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.UseShellExecute = false;
@@ -190,22 +208,32 @@ namespace whisperer
                     int i = inname.LastIndexOf('.');
                     if (i == -1)
                         continue;
-                    inname = inname.Remove(i) + ".wav";
+                    string tmp = inname.Remove(i);
+                    inname = tmp + ".wav";
+                    string outname = tmp + ".srt";
+
                     if (srtexists(inname))
                     {
                         Proc_Exited(null, null);
                         continue;
                     }
                     Process proc = new Process();
-                    proc.StartInfo.FileName = @"whisper.exe";
-                    proc.StartInfo.Arguments = "--output_dir \"" + glboutdir + "\" --language en --device cuda --model \"" + glbmodel + "\" \"" + inname + "\"";
+                    string translate = " ";
+                    if (checkBox2.Checked)
+                        translate = " -tr ";
+                    proc.StartInfo.FileName = @"cmd.exe";
+                    proc.StartInfo.Arguments = "/c \"main.exe --language " + glblang + translate + "--output-srt --max-context 0 --model \"" + glbmodel + "\" \"" + 
+                        inname + "\" > \"" + outname + "\"\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
 
                     fillmemvars();
-                    long neededmem = 2700000000;
-                    if (glbmodel.StartsWith("medium") || glbmodel.StartsWith("large"))
-                        neededmem = 7000000000;
+                    long neededmem = 400000000;
+                    if (glbwaittime == 15000)
+                        neededmem = 2400000000;
+                    else if (glbwaittime == 20000)
+                        neededmem = 4300000000;
+
                     while (freemem < neededmem && !cancel)
                     {
                         Thread.Sleep(1000);
@@ -215,17 +243,17 @@ namespace whisperer
                     if (cancel)
                         break;
 
-                    int wlen = Process.GetProcessesByName("whisper").Length;
+                    int wlen = Process.GetProcessesByName("main").Length;
                     proc.EnableRaisingEvents = true;
                     proc.Exited += Proc_Exited;
                     proc.Start();
                     
-                    while (Process.GetProcessesByName("whisper").Length == wlen)
+                    while (Process.GetProcessesByName("main").Length == wlen)
                         Thread.Sleep(10);
 
                     long whispersize = 0;
 
-                    while (whispersize == 0 && Process.GetProcessesByName("whisper").Length > 0 && !cancel)
+                    while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
                     {
                         Thread.Sleep(1000);
                         whispersize = getwhispersize();
@@ -237,7 +265,7 @@ namespace whisperer
                         }
                     }
 
-                    while (freemem - 200000000 < whispersize && Process.GetProcessesByName("whisper").Length > 0 && !cancel)
+                    while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
                     {
                         Thread.Sleep(1000);
                         fillmemvars();
@@ -248,7 +276,7 @@ namespace whisperer
                         break;
                 }
 
-                while (Process.GetProcessesByName("whisper").Length > 0 && !cancel)
+                while (Process.GetProcessesByName("main").Length > 0 && !cancel)
                     Thread.Sleep(1000);
             }
             catch (Exception ex)
@@ -297,10 +325,12 @@ namespace whisperer
                     if (!checkdir())
                         return;
                     glbarray.Clear();
-                    glbmodel = comboBox1.Text;
-                    glbwaittime = 30000;
-                    if (glbmodel.StartsWith("medium") || glbmodel.StartsWith("large"))
-                        glbwaittime = 60000;
+                    glbmodel = textBox2.Text;
+                    glbwaittime = 10000;
+                    if (glbmodel.ToLower().Contains("medium"))
+                        glbwaittime = 15000;
+                    else if (glbmodel.ToLower().Contains("large"))
+                        glbwaittime = 20000;
                     foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                         glbarray.Add(filename.filename);
                     cancel = false;
@@ -308,6 +338,12 @@ namespace whisperer
                     completed = 0;
                     label5.Text = "0";
                     glboutdir = textBox1.Text;
+                    glblang = "en";
+                    try
+                    {
+                        glblang = langs[comboBox1.Text];
+                    }
+                    catch { }
                     Thread thr = new Thread(() =>
                     {
                         convertalltowav();
@@ -351,6 +387,7 @@ namespace whisperer
                 if (!fexists(file))
                     fastObjectListView1.AddObject(new filenameline(file));
             }
+            setcount();
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
