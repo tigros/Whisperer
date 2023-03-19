@@ -22,6 +22,7 @@ namespace whisperer
         string glboutdir, glblang;
         int glbwaittime = 0;
         Dictionary<string, string> langs = new Dictionary<string, string>();
+        bool glbsamefolder = false;
 
         public Form1()
         {
@@ -167,7 +168,7 @@ namespace whisperer
             {
                 foreach (string filename in glbarray)
                 {
-                    string outname = Path.Combine(glboutdir, Path.GetFileName(filename));
+                    string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
                     int i = outname.LastIndexOf('.');
                     if (i == -1)
                         continue;
@@ -196,6 +197,11 @@ namespace whisperer
             }
         }
 
+        string getfolder(string filename)
+        {
+            return glbsamefolder ? Path.GetDirectoryName(filename) : glboutdir;
+        }
+
         void execwhisper()
         {
             try
@@ -205,13 +211,12 @@ namespace whisperer
 
                 foreach (string filename in glbarray)
                 {
-                    string inname = Path.Combine(glboutdir, Path.GetFileName(filename));
+                    string inname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
                     int i = inname.LastIndexOf('.');
                     if (i == -1)
                         continue;
                     string tmp = inname.Remove(i);
                     inname = tmp + ".wav";
-                    string outname = tmp + ".srt";
 
                     if (srtexists(tmp))
                     {
@@ -350,6 +355,7 @@ namespace whisperer
                     completed = 0;
                     label5.Text = "0";
                     glboutdir = textBox1.Text;
+                    glbsamefolder = checkBox3.Checked;
                     glblang = "en";
                     try
                     {
@@ -401,6 +407,11 @@ namespace whisperer
                     fastObjectListView1.AddObject(new filenameline(file));
             }
             setcount();
+        }
+
+        private void checkBox3_CheckedChanged(object sender, EventArgs e)
+        {
+            textBox1.Enabled = !checkBox3.Checked;
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
