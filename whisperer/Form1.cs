@@ -66,7 +66,10 @@ namespace whisperer
                 langs.Add("english", "en");
                 comboBox1.Items.Add("english");
             }
-            comboBox1.Text = "english";
+
+            textBox1.Text = readreg("outputdir", textBox1.Text);
+            textBox2.Text = readreg("modelpath", textBox2.Text);
+            comboBox1.Text = readreg("language", comboBox1.Text);
         }
 
         long getvideomem()
@@ -85,6 +88,37 @@ namespace whisperer
             }
             catch { }
             return 0;
+        }
+
+        void writereg(string name, string value)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\tigros\whisperer"))
+                {
+                    if (key != null)
+                        key.SetValue(name, value);
+                }
+            }
+            catch { }
+        }
+
+        string readreg(string name, string deflt)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\tigros\whisperer"))
+                {
+                    if (key != null)
+                    {
+                        object o = key.GetValue(name);
+                        if (o != null)
+                            return (string)o;
+                    }
+                }
+            }
+            catch { }
+            return deflt;
         }
 
         void fillmemvars()
@@ -421,6 +455,13 @@ namespace whisperer
         private void checkBox3_CheckedChanged(object sender, EventArgs e)
         {
             textBox1.Enabled = !checkBox3.Checked;
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            writereg("modelpath", textBox2.Text);
+            writereg("outputdir", textBox1.Text);
+            writereg("language", comboBox1.Text);
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]

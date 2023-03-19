@@ -233,6 +233,7 @@
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(121, 24);
             this.comboBox1.TabIndex = 44;
+            this.comboBox1.Text = "english";
             // 
             // label7
             // 
@@ -300,6 +301,7 @@
             this.Controls.Add(this.button1);
             this.Name = "Form1";
             this.Text = "Whisperer";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.fastObjectListView1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
