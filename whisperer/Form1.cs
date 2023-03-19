@@ -222,9 +222,9 @@ namespace whisperer
                     string translate = " ";
                     if (checkBox2.Checked)
                         translate = " -tr ";
-                    proc.StartInfo.FileName = @"cmd.exe";
-                    proc.StartInfo.Arguments = "/c \"main.exe --language " + glblang + translate + "--output-srt --max-context 0 --model \"" + glbmodel + "\" \"" + 
-                        inname + "\" > \"" + outname + "\"\"";
+                    proc.StartInfo.FileName = "main.exe";
+                    proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" + 
+                        glbmodel + "\" \"" + inname + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
 
@@ -288,6 +288,17 @@ namespace whisperer
 
         private void Proc_Exited(object sender, EventArgs e)
         {
+            try
+            {
+                if (sender != null)
+                {
+                    string args = ((Process)sender).StartInfo.Arguments;
+                    args = args.TrimEnd('"');
+                    args = args.Substring(args.LastIndexOf('"') + 1);
+                    File.Delete(args);
+                }
+            }
+            catch { }
             completed++;
             Invoke(new Action(() =>
             {
@@ -354,6 +365,7 @@ namespace whisperer
                             button3.Text = "Go";
                         }));
                     });
+                    thr.IsBackground = true;
                     thr.Start();
                 }
                 else
