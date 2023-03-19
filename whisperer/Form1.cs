@@ -174,6 +174,8 @@ namespace whisperer
                         continue;
                     string tmp = outname.Remove(i);
                     outname = tmp + ".wav";
+                    if (Path.GetExtension(filename).ToLower() == ".wav")
+                        outname += ".wav";
                     if (File.Exists(outname) || srtexists(tmp))
                         continue;
                     Process proc = new Process();
@@ -217,7 +219,8 @@ namespace whisperer
                         continue;
                     string tmp = inname.Remove(i);
                     inname = tmp + ".wav";
-
+                    if (Path.GetExtension(filename).ToLower() == ".wav")
+                        inname += ".wav";
                     if (srtexists(tmp))
                     {
                         Proc_Exited(null, null);
