@@ -13,7 +13,6 @@ namespace whisperer
 {
     public partial class Form1 : Form, IMessageFilter
     {
-        private NvDisplayHandle displayHandle;
         long totmem = 0, freemem = 0;
         bool cancel = false;
         ArrayList glbarray = new ArrayList();
@@ -23,6 +22,7 @@ namespace whisperer
         int glbwaittime = 0;
         Dictionary<string, string> langs = new Dictionary<string, string>();
         bool glbsamefolder = false;
+        List<PerformanceCounter> gpuCountersDedicated = new List<PerformanceCounter>();
 
         public Form1()
         {
@@ -50,7 +50,14 @@ namespace whisperer
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            NVAPI.NvAPI_EnumNvidiaDisplayHandle(0, ref displayHandle);
+            Thread thr = new Thread(() =>
+            {
+                initperfcounter();
+            });
+            thr.Start();
+
+            totmem = getvideomem();
+
             if (File.Exists("languageCodez.tsv"))
             {
                 foreach (string line in File.ReadLines("languageCodez.tsv"))
@@ -121,16 +128,33 @@ namespace whisperer
             return deflt;
         }
 
+        void initperfcounter()
+        {
+            var category = new PerformanceCounterCategory("GPU Adapter Memory");
+            var counterNames = category.GetInstanceNames();
+            foreach (string counterName in counterNames)
+            {
+                foreach (var counter in category.GetCounters(counterName))
+                {
+                    if (counter.CounterName == "Dedicated Usage")
+                        gpuCountersDedicated.Add(counter);
+                }
+            }
+        }
+
+        long getfreegpumem()
+        {
+            var result = 0f;
+            gpuCountersDedicated.ForEach(x =>
+            {
+                result += x.NextValue();
+            });
+            return Convert.ToInt64(totmem - result);
+        }
+
         void fillmemvars()
         {
-            //totmem = getvideomem();
-
-            NvDisplayDriverMemoryInfo memoryInfo = new NvDisplayDriverMemoryInfo();
-            memoryInfo.Version = NVAPI.DISPLAY_DRIVER_MEMORY_INFO_VER;
-            memoryInfo.Values = new uint[NVAPI.MAX_MEMORY_VALUES_PER_GPU];
-            if (NVAPI.NvAPI_GetDisplayDriverMemoryInfo != null &&
-                NVAPI.NvAPI_GetDisplayDriverMemoryInfo(displayHandle, ref memoryInfo) == NvStatus.OK)
-                freemem = (long)memoryInfo.Values[4] * 1024;
+            freemem = getfreegpumem();
         }
 
         bool fexists(string name)
