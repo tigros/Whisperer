@@ -380,7 +380,7 @@ namespace whisperer
 
         bool checkdir()
         {
-            if (!Directory.Exists(textBox1.Text))
+            if (!checkBox3.Checked && !Directory.Exists(textBox1.Text))
             {
                 try
                 {
