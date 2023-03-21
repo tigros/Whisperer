@@ -130,15 +130,23 @@ namespace whisperer
 
         void initperfcounter()
         {
-            var category = new PerformanceCounterCategory("GPU Adapter Memory");
-            var counterNames = category.GetInstanceNames();
-            foreach (string counterName in counterNames)
+            try
             {
-                foreach (var counter in category.GetCounters(counterName))
+                var category = new PerformanceCounterCategory("GPU Adapter Memory");
+                var counterNames = category.GetInstanceNames();
+                foreach (string counterName in counterNames)
                 {
-                    if (counter.CounterName == "Dedicated Usage")
-                        gpuCountersDedicated.Add(counter);
+                    foreach (var counter in category.GetCounters(counterName))
+                    {
+                        if (counter.CounterName == "Dedicated Usage")
+                            gpuCountersDedicated.Add(counter);
+                    }
                 }
+            }
+            catch
+            {
+                MessageBox.Show("Unsupported Windows version, will now exit.");
+                Application.Exit();
             }
         }
 
