@@ -76,7 +76,8 @@ namespace whisperer
 
             textBox1.Text = readreg("outputdir", textBox1.Text);
             textBox2.Text = readreg("modelpath", textBox2.Text);
-            comboBox1.Text = readreg("language", comboBox1.Text);
+            comboBox1.Text = readreg("language", "english");
+            comboBox2.Text = "Do nothing";
         }
 
         long getvideomem()
@@ -403,6 +404,20 @@ namespace whisperer
             return true;
         }
 
+        void whendone()
+        {
+            if (comboBox2.Text == "Shutdown")
+                Process.Start("shutdown", "/s /t 1");
+            else if (comboBox2.Text == "Sleep")
+                Application.SetSuspendState(PowerState.Suspend, true, true);
+            else if (comboBox2.Text == "Hibernate")
+                Application.SetSuspendState(PowerState.Hibernate, true, true);
+            else if (comboBox2.Text == "Lock")
+                LockWorkStation();
+            else if (comboBox2.Text == "Log off")
+                ExitWindowsEx(0, 0);
+        }
+
         private void button3_Click(object sender, EventArgs e)
         {
             try
@@ -444,6 +459,7 @@ namespace whisperer
                         Invoke(new Action(() =>
                         {
                             button3.Text = "Go";
+                            whendone();
                         }));
                     });
                     thr.IsBackground = true;
@@ -501,6 +517,12 @@ namespace whisperer
 
         [DllImport("user32.dll", EntryPoint = "WindowFromPoint", CharSet = CharSet.Auto, ExactSpelling = true)]
         public static extern IntPtr WindowFromPoint(Point pt);
+
+        [DllImport("user32.dll")]
+        public static extern bool ExitWindowsEx(uint uFlags, uint dwReason);
+
+        [DllImport("user32.dll")]
+        public static extern void LockWorkStation();
     }
 
     public class filenameline
