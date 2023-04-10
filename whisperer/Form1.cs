@@ -406,6 +406,8 @@ namespace whisperer
 
         void whendone()
         {
+            if (cancel)
+                return;
             if (comboBox2.Text == "Shutdown")
                 Process.Start("shutdown", "/s /t 1");
             else if (comboBox2.Text == "Sleep")
