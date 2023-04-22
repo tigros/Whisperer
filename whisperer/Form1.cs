@@ -434,7 +434,7 @@ namespace whisperer
             Action act = null;
             while (!quitq)
             {
-                while (!quitq && whisperq.TryDequeue(out act))
+                if (whisperq.TryDequeue(out act))
                     act.Invoke();
                 Thread.Sleep(1000);
             }
