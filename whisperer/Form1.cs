@@ -226,47 +226,50 @@ namespace whisperer
 
         bool srtexists(string filename)
         {
-            return checkBox1.Checked && File.Exists(filename + ".srt");
+            int i = filename.LastIndexOf('.');
+            filename = filename.Remove(i) + ".srt";
+            return checkBox1.Checked && File.Exists(filename);
         }
 
-        void convertalltowav()
+        void convertandwhisper(string filename)
         {
             try
             {
-                foreach (string filename in glbarray)
+                string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
+                int i = outname.LastIndexOf('.');
+                if (i == -1)
+                    return;
+                outname = outname.Remove(i) + ".wav";
+                if (Path.GetExtension(filename).ToLower() == ".wav")
+                    outname += ".wav";
+                Process proc = new Process();
+                proc.StartInfo.FileName = "ffmpeg.exe";
+                proc.StartInfo.Arguments = "-y -i \"" + filename + "\" -vn -ar 16000 -ac 1 -ab 32k -af volume=1.75 -f wav \"" + outname + "\"";
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.CreateNoWindow = true;
+
+                if (File.Exists(outname) || srtexists(outname))
                 {
-                    string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
-                    int i = outname.LastIndexOf('.');
-                    if (i == -1)
-                        continue;
-                    string tmp = outname.Remove(i);
-                    outname = tmp + ".wav";
-                    if (Path.GetExtension(filename).ToLower() == ".wav")
-                    {
-                        outname += ".wav";
-                        tmp += ".wav";
-                    }
-                    if (File.Exists(outname) || srtexists(tmp))
-                        continue;
-                    Process proc = new Process();
-                    proc.StartInfo.FileName = "ffmpeg.exe";
-                    proc.StartInfo.Arguments = "-y -i \"" + filename + "\" -vn -ar 16000 -ac 1 -ab 32k -af volume=1.75 -f wav \"" + outname + "\"";
-                    proc.StartInfo.UseShellExecute = false;
-                    proc.StartInfo.CreateNoWindow = true;
-                    proc.Start();
-                    while (Process.GetProcessesByName("ffmpeg").Length > 10 && !cancel)
-                        Thread.Sleep(1000);
-                    if (cancel)
-                        break;
+                    ffmpeg_Exited(proc, null);
+                    return;
                 }
 
-                while (Process.GetProcessesByName("ffmpeg").Length > 0 && !cancel)
-                    Thread.Sleep(1000);
+                proc.EnableRaisingEvents = true;
+                proc.Exited += ffmpeg_Exited;
+                proc.Start();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
             }
+        }
+
+        private void ffmpeg_Exited(object sender, EventArgs e)
+        {
+            string filename = ((Process)sender).StartInfo.Arguments;
+            filename = filename.TrimEnd('"');
+            filename = filename.Substring(filename.LastIndexOf('"') + 1);
+            execwhisper(filename);
         }
 
         string getfolder(string filename)
@@ -274,92 +277,72 @@ namespace whisperer
             return glbsamefolder ? Path.GetDirectoryName(filename) : glboutdir;
         }
 
-        void execwhisper()
+        void execwhisper(string filename)
         {
             try
-            {
+            {                
+                Process proc = new Process();
+                string translate = " ";
+                if (checkBox2.Checked)
+                    translate = " -tr ";
+                proc.StartInfo.FileName = "main.exe";
+                proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" +
+                    glbmodel + "\" \"" + filename + "\"";
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.CreateNoWindow = true;
+
+                if (srtexists(filename))
+                {
+                    whisper_Exited(proc, null);
+                    return;
+                }
+                if (!File.Exists(filename))
+                    return;
+
+                fillmemvars();
+                long neededmem = 400000000;
+                if (glbwaittime == 15000)
+                    neededmem = 2400000000;
+                else if (glbwaittime == 20000)
+                    neededmem = 4300000000;
+
+                while (freemem < neededmem && !cancel)
+                {
+                    Thread.Sleep(1000);
+                    fillmemvars();
+                }
+
                 if (cancel)
                     return;
 
-                foreach (string filename in glbarray)
+                int wlen = Process.GetProcessesByName("main").Length;
+                proc.EnableRaisingEvents = true;
+                proc.Exited += whisper_Exited;
+                proc.Start();
+
+                while (Process.GetProcessesByName("main").Length == wlen)
+                    Thread.Sleep(10);
+
+                long whispersize = 0;
+
+                while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
                 {
-                    string inname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
-                    int i = inname.LastIndexOf('.');
-                    if (i == -1)
-                        continue;
-                    string tmp = inname.Remove(i);
-                    inname = tmp + ".wav";
-                    if (Path.GetExtension(filename).ToLower() == ".wav")
+                    Thread.Sleep(1000);
+                    whispersize = getwhispersize();
+                    if (whispersize > 0)
                     {
-                        inname += ".wav";
-                        tmp += ".wav";
-                    }
-                    if (srtexists(tmp))
-                    {
-                        Proc_Exited(null, null);
-                        continue;
-                    }
-                    Process proc = new Process();
-                    string translate = " ";
-                    if (checkBox2.Checked)
-                        translate = " -tr ";
-                    proc.StartInfo.FileName = "main.exe";
-                    proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" + 
-                        glbmodel + "\" \"" + inname + "\"";
-                    proc.StartInfo.UseShellExecute = false;
-                    proc.StartInfo.CreateNoWindow = true;
-
-                    fillmemvars();
-                    long neededmem = 400000000;
-                    if (glbwaittime == 15000)
-                        neededmem = 2400000000;
-                    else if (glbwaittime == 20000)
-                        neededmem = 4300000000;
-
-                    while ((freemem < neededmem || Process.GetProcessesByName("main").Length >= numericUpDown1.Value) && !cancel)
-                    {
-                        Thread.Sleep(1000);
+                        Thread.Sleep(glbwaittime);
+                        whispersize = getwhispersize();
                         fillmemvars();
                     }
-
-                    if (cancel)
-                        break;
-
-                    int wlen = Process.GetProcessesByName("main").Length;
-                    proc.EnableRaisingEvents = true;
-                    proc.Exited += Proc_Exited;
-                    proc.Start();
-                    
-                    while (Process.GetProcessesByName("main").Length == wlen)
-                        Thread.Sleep(10);
-
-                    long whispersize = 0;
-
-                    while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                    {
-                        Thread.Sleep(1000);
-                        whispersize = getwhispersize();
-                        if (whispersize > 0)
-                        {
-                            Thread.Sleep(glbwaittime);
-                            whispersize = getwhispersize();
-                            fillmemvars();
-                        }
-                    }
-
-                    while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                    {
-                        Thread.Sleep(1000);
-                        fillmemvars();
-                        whispersize = getwhispersize();
-                    }
-
-                    if (cancel)
-                        break;
                 }
 
-                while (Process.GetProcessesByName("main").Length > 0 && !cancel)
+                while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
+                {
                     Thread.Sleep(1000);
+                    fillmemvars();
+                    whispersize = getwhispersize();
+                }
             }
             catch (Exception ex)
             {
@@ -367,24 +350,22 @@ namespace whisperer
             }
         }
 
-        private void Proc_Exited(object sender, EventArgs e)
+        private void whisper_Exited(object sender, EventArgs e)
         {
             try
             {
-                if (sender != null)
-                {
-                    string args = ((Process)sender).StartInfo.Arguments;
-                    args = args.TrimEnd('"');
-                    args = args.Substring(args.LastIndexOf('"') + 1);
-                    File.Delete(args);
-                }
+                string filename = ((Process)sender).StartInfo.Arguments;
+                filename = filename.TrimEnd('"');
+                filename = filename.Substring(filename.LastIndexOf('"') + 1);
+                if (File.Exists(filename))
+                    File.Delete(filename);
             }
             catch { }
             completed++;
             Invoke(new Action(() =>
             {
-                label5.Text = completed.ToString();
-            }));            
+                label5.Text = completed.ToString("#,##0");
+            }));
         }
 
         bool checkdir()
@@ -418,6 +399,29 @@ namespace whisperer
                 LockWorkStation();
             else if (comboBox2.Text == "Log off")
                 ExitWindowsEx(0, 0);
+        }
+
+        bool maxatonce()
+        {
+            return Process.GetProcessesByName("main").Length >= numericUpDown1.Value ||
+                Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value;
+        }
+
+        void execwhisper()
+        {
+            foreach (string filename in glbarray)
+            {
+                while (maxatonce() && !cancel)
+                    Thread.Sleep(1000);
+
+                if (cancel)
+                    return;
+
+                convertandwhisper(filename);
+            }
+
+            while (Process.GetProcessesByName("main").Length > 0)
+                Thread.Sleep(1000);
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -456,7 +460,6 @@ namespace whisperer
                     catch { }
                     Thread thr = new Thread(() =>
                     {
-                        convertalltowav();
                         execwhisper();
                         Invoke(new Action(() =>
                         {
