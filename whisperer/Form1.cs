@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -23,6 +24,8 @@ namespace whisperer
         Dictionary<string, string> langs = new Dictionary<string, string>();
         bool glbsamefolder = false;
         List<PerformanceCounter> gpuCountersDedicated = new List<PerformanceCounter>();
+        ConcurrentQueue<Action> whisperq = new ConcurrentQueue<Action>();
+        bool quitq = false;
 
         public Form1()
         {
@@ -235,6 +238,10 @@ namespace whisperer
         {
             try
             {
+                while (Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value && !cancel)
+                    Thread.Sleep(1000);
+                if (cancel)
+                    return;
                 string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
                 int i = outname.LastIndexOf('.');
                 if (i == -1)
@@ -269,7 +276,7 @@ namespace whisperer
             string filename = ((Process)sender).StartInfo.Arguments;
             filename = filename.TrimEnd('"');
             filename = filename.Substring(filename.LastIndexOf('"') + 1);
-            execwhisper(filename);
+            qwhisper(filename);
         }
 
         string getfolder(string filename)
@@ -277,77 +284,83 @@ namespace whisperer
             return glbsamefolder ? Path.GetDirectoryName(filename) : glboutdir;
         }
 
-        void execwhisper(string filename)
+        void qwhisper(string filename)
         {
-            try
-            {                
-                Process proc = new Process();
-                string translate = " ";
-                if (checkBox2.Checked)
-                    translate = " -tr ";
-                proc.StartInfo.FileName = "main.exe";
-                proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" +
-                    glbmodel + "\" \"" + filename + "\"";
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.CreateNoWindow = true;
-
-                if (srtexists(filename))
+            whisperq.Enqueue(new Action(() =>
+            {
+                try
                 {
-                    whisper_Exited(proc, null);
-                    return;
-                }
-                if (!File.Exists(filename))
-                    return;
+                    while (Process.GetProcessesByName("main").Length >= numericUpDown1.Value && !cancel)
+                        Thread.Sleep(1000);
+                    Process proc = new Process();
+                    string translate = " ";
+                    if (checkBox2.Checked)
+                        translate = " -tr ";
+                    proc.StartInfo.FileName = "main.exe";
+                    proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" +
+                        glbmodel + "\" \"" + filename + "\"";
+                    proc.StartInfo.UseShellExecute = false;
+                    proc.StartInfo.CreateNoWindow = true;
 
-                fillmemvars();
-                long neededmem = 400000000;
-                if (glbwaittime == 15000)
-                    neededmem = 2400000000;
-                else if (glbwaittime == 20000)
-                    neededmem = 4300000000;
-
-                while (freemem < neededmem && !cancel)
-                {
-                    Thread.Sleep(1000);
-                    fillmemvars();
-                }
-
-                if (cancel)
-                    return;
-
-                int wlen = Process.GetProcessesByName("main").Length;
-                proc.EnableRaisingEvents = true;
-                proc.Exited += whisper_Exited;
-                proc.Start();
-
-                while (Process.GetProcessesByName("main").Length == wlen)
-                    Thread.Sleep(10);
-
-                long whispersize = 0;
-
-                while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                {
-                    Thread.Sleep(1000);
-                    whispersize = getwhispersize();
-                    if (whispersize > 0)
+                    if (srtexists(filename))
                     {
-                        Thread.Sleep(glbwaittime);
-                        whispersize = getwhispersize();
+                        whisper_Exited(proc, null);
+                        return;
+                    }
+                    if (!File.Exists(filename))
+                        return;
+
+                    fillmemvars();
+                    long neededmem = 400000000;
+                    if (glbwaittime == 15000)
+                        neededmem = 2400000000;
+                    else if (glbwaittime == 20000)
+                        neededmem = 4300000000;
+
+                    while (freemem < neededmem && !cancel)
+                    {
+                        Thread.Sleep(1000);
                         fillmemvars();
                     }
-                }
 
-                while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                {
-                    Thread.Sleep(1000);
-                    fillmemvars();
-                    whispersize = getwhispersize();
+                    if (cancel)
+                        return;
+
+                    int wlen = Process.GetProcessesByName("main").Length;
+                    proc.EnableRaisingEvents = true;
+                    proc.Exited += whisper_Exited;
+                    proc.Start();
+
+                    while (Process.GetProcessesByName("main").Length == wlen)
+                        Thread.Sleep(10);
+
+                    long whispersize = 0;
+
+                    while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
+                    {
+                        Thread.Sleep(1000);
+                        whispersize = getwhispersize();
+                        if (whispersize > 0)
+                        {
+                            for (int i = 0; i < glbwaittime && !cancel; i += 1000)
+                                Thread.Sleep(1000);
+                            whispersize = getwhispersize();
+                            fillmemvars();
+                        }
+                    }
+
+                    while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
+                    {
+                        Thread.Sleep(1000);
+                        fillmemvars();
+                        whispersize = getwhispersize();
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-            }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString());
+                }
+            }));
         }
 
         private void whisper_Exited(object sender, EventArgs e)
@@ -401,27 +414,29 @@ namespace whisperer
                 ExitWindowsEx(0, 0);
         }
 
-        bool maxatonce()
-        {
-            return Process.GetProcessesByName("main").Length >= numericUpDown1.Value ||
-                Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value;
-        }
-
         void execwhisper()
         {
             foreach (string filename in glbarray)
             {
-                while (maxatonce() && !cancel)
-                    Thread.Sleep(1000);
-
                 if (cancel)
-                    return;
-
+                    break;
                 convertandwhisper(filename);
             }
 
-            while (Process.GetProcessesByName("main").Length > 0)
+            while ((Process.GetProcessesByName("ffmpeg").Length > 0 || Process.GetProcessesByName("main").Length > 0 ||
+                whisperq.Count > 0) && !cancel)
                 Thread.Sleep(1000);
+        }
+
+        void consumeq()
+        {
+            Action act = null;
+            while (!quitq)
+            {
+                while (!quitq && whisperq.TryDequeue(out act))
+                    act.Invoke();
+                Thread.Sleep(1000);
+            }
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -453,6 +468,14 @@ namespace whisperer
                     glboutdir = textBox1.Text;
                     glbsamefolder = checkBox3.Checked;
                     glblang = "en";
+                    Action act = null;
+                    while (whisperq.Count > 0)
+                    {
+                        while (whisperq.TryDequeue(out act))
+                            ;
+                        Thread.Sleep(10);
+                    }
+                    quitq = false;
                     try
                     {
                         glblang = langs[comboBox1.Text];
@@ -461,6 +484,7 @@ namespace whisperer
                     Thread thr = new Thread(() =>
                     {
                         execwhisper();
+                        quitq = true;
                         Invoke(new Action(() =>
                         {
                             button3.Text = "Go";
@@ -469,6 +493,13 @@ namespace whisperer
                     });
                     thr.IsBackground = true;
                     thr.Start();
+
+                    Thread cq = new Thread(() =>
+                    {
+                        consumeq();
+                    });
+                    cq.IsBackground = true;
+                    cq.Start();
                 }
                 else
                     cancel = true;
