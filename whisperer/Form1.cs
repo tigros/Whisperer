@@ -238,7 +238,8 @@ namespace whisperer
         {
             try
             {
-                while (Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value && !cancel)
+                while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
+                    whisperq.Count >= numericUpDown1.Value) && !cancel)
                     Thread.Sleep(1000);
                 if (cancel)
                     return;
