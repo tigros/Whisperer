@@ -240,7 +240,7 @@ namespace whisperer
             {
                 while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
                     whisperq.Count >= numericUpDown1.Value) && !cancel)
-                    Thread.Sleep(1000);
+                    Thread.Sleep(100);
                 if (cancel)
                     return;
                 string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
@@ -436,7 +436,7 @@ namespace whisperer
             {
                 while (!quitq && whisperq.TryDequeue(out act))
                     act.Invoke();
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
             }
         }
 
