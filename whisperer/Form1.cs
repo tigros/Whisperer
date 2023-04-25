@@ -334,16 +334,19 @@ namespace whisperer
 
                     while (Process.GetProcessesByName("main").Length == wlen)
                         Thread.Sleep(10);
+                    
+                    FileInfo fi = new FileInfo(filename);
+                    int div = fi.Length < 10000000 ? 10 : fi.Length < 20000000 ? 3 : 1;
 
                     long whispersize = 0;
 
                     while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
                     {
-                        Thread.Sleep(1000);
+                        Thread.Sleep(1000 / div);
                         whispersize = getwhispersize();
                         if (whispersize > 0)
                         {
-                            for (int i = 0; i < glbwaittime && !cancel; i += 1000)
+                            for (int i = 0; i < glbwaittime / div && !cancel; i += 1000)
                                 Thread.Sleep(1000);
                             whispersize = getwhispersize();
                             fillmemvars();
