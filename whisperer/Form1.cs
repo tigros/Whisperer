@@ -268,7 +268,8 @@ namespace whisperer
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                cancel = true;
+                MessageBox.Show("ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer");
             }
         }
 
@@ -362,6 +363,7 @@ namespace whisperer
                 }
                 catch (Exception ex)
                 {
+                    cancel = true;
                     MessageBox.Show(ex.ToString());
                 }
             }));
@@ -458,6 +460,12 @@ namespace whisperer
                         return;
                     glbarray.Clear();
                     glbmodel = textBox2.Text;
+                    if (!File.Exists(glbmodel))
+                    {
+                        MessageBox.Show(glbmodel + " not found!");
+                        return;
+                    }
+
                     glbwaittime = 10000;
                     if (glbmodel.ToLower().Contains("medium"))
                         glbwaittime = 15000;
