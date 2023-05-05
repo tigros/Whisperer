@@ -87,13 +87,16 @@ namespace whisperer
         {
             try
             {
-                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"))
+                for (int i = 0; i < 10; i++)
                 {
-                    if (key != null)
+                    using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\000" + i.ToString()))
                     {
-                        object o = key.GetValue("HardwareInformation.qwMemorySize");
-                        if (o != null)
-                            return (long)o;
+                        if (key != null)
+                        {
+                            object o = key.GetValue("HardwareInformation.qwMemorySize");
+                            if (o != null)
+                                return (long)o;
+                        }
                     }
                 }
             }
