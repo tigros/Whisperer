@@ -101,6 +101,8 @@ namespace whisperer
                 }
             }
             catch { }
+            MessageBox.Show("A critical error occurred, check graphics card/drivers!");
+            Application.Exit();
             return 0;
         }
 
