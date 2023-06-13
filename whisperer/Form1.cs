@@ -318,7 +318,7 @@ namespace whisperer
                         return;
 
                     fillmemvars();
-                    long neededmem = 400000000;
+                    long neededmem = 100000000;
                     if (glbwaittime == 15000)
                         neededmem = 2400000000;
                     else if (glbwaittime == 20000)
@@ -476,6 +476,14 @@ namespace whisperer
                         glbwaittime = 15000;
                     else if (glbmodel.ToLower().Contains("large"))
                         glbwaittime = 20000;
+
+                    if ((glbwaittime == 15000 && totmem < 2400000000) ||
+                        (glbwaittime == 20000 && totmem < 4300000000))
+                    {
+                        MessageBox.Show("Insufficient graphics memory for this model!");
+                        return;
+                    }
+
                     foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                         glbarray.Add(filename.filename);
                     cancel = false;
