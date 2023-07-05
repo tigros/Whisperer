@@ -1,6 +1,6 @@
 Whisperer lets you generate subtitles for any kind of video/audio files.
 
-It uses OpenAI's whisper, it runs as many instances simultaneously as your Nvidia GPU's memory allows.
+It uses OpenAI's whisper, it runs as many instances simultaneously as your GPU's memory allows.
 
 Update: now uses [https://github.com/Const-me/Whisper](https://github.com/Const-me/Whisper) GPU enabled whispercpp, thanks to Kosta for this major speed improvement!
 
