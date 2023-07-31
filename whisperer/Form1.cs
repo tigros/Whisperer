@@ -66,30 +66,51 @@ namespace whisperer
                 foreach (string line in File.ReadLines("languageCodez.tsv"))
                 {
                     string[] lang = line.Split('\t');
-                    langs.Add(lang[2], lang[0]);
-                    comboBox1.Items.Add(lang[2]);
+                    string proper = toproper(lang[2]);
+                    langs.Add(proper, lang[0]);
+                    comboBox1.Items.Add(proper);
                 }
             }
             else
             {
                 MessageBox.Show("languageCodez.tsv missing!");
-                langs.Add("english", "en");
-                comboBox1.Items.Add("english");
+                langs.Add("English", "en");
+                comboBox1.Items.Add("English");
             }
 
             textBox1.Text = readreg("outputdir", textBox1.Text);
             textBox2.Text = readreg("modelpath", textBox2.Text);
-            comboBox1.Text = readreg("language", "english");
+            comboBox1.Text = toproper(readreg("language", "English"));
             comboBox2.Text = "Do nothing";
+
+            checkBox4.CheckedChanged += outputtype_CheckedChanged;
+            checkBox5.CheckedChanged += outputtype_CheckedChanged;
+            checkBox6.CheckedChanged += outputtype_CheckedChanged;
+        }
+
+        string toproper(string s)
+        {
+            return s.Substring(0, 1).ToUpper() + s.Substring(1);
+        }
+
+        private void outputtype_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox clickedCheckBox = sender as CheckBox;
+            if (!clickedCheckBox.Checked && !checkBox4.Checked && !checkBox5.Checked && !checkBox6.Checked)
+            {
+                clickedCheckBox.CheckedChanged -= outputtype_CheckedChanged;
+                clickedCheckBox.Checked = true;
+                clickedCheckBox.CheckedChanged += outputtype_CheckedChanged;
+            }
         }
 
         long getvideomem()
         {
             try
             {
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 100; i++)
                 {
-                    using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\000" + i.ToString()))
+                    using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\00" + i.ToString("00")))
                     {
                         if (key != null)
                         {
@@ -152,9 +173,12 @@ namespace whisperer
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                MessageBox.Show("Unsupported Windows version, will now exit.");
+                if (ex.HResult == -2146233079)
+                    MessageBox.Show(@"Unsupported Windows version, will now exit.");
+                else
+                    MessageBox.Show(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from admin cmd prompt, will now exit.");
                 Application.Exit();
             }
         }
@@ -232,11 +256,19 @@ namespace whisperer
             return whispersize;
         }
 
-        bool srtexists(string filename)
+        bool outputexists(string filename)
         {
-            int i = filename.LastIndexOf('.');
-            filename = filename.Remove(i) + ".srt";
-            return checkBox1.Checked && File.Exists(filename);
+            if (!checkBox1.Checked)
+                return false;
+            filename = filename.Remove(filename.LastIndexOf('.'));
+            bool res = true;
+            if (checkBox4.Checked)
+                res = File.Exists(filename + ".srt");
+            if (checkBox5.Checked)
+                res &= File.Exists(filename + ".txt");
+            if (checkBox6.Checked)
+                res &= File.Exists(filename + ".vtt");
+            return res;
         }
 
         void convertandwhisper(string filename)
@@ -246,11 +278,9 @@ namespace whisperer
                 while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
                     whisperq.Count >= numericUpDown1.Value) && !cancel)
                     Thread.Sleep(100);
-                if (cancel)
-                    return;
                 string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
                 int i = outname.LastIndexOf('.');
-                if (i == -1)
+                if (i == -1 || cancel)
                     return;
                 outname = outname.Remove(i) + ".wav";
                 if (Path.GetExtension(filename).ToLower() == ".wav")
@@ -261,7 +291,7 @@ namespace whisperer
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = true;
 
-                if (File.Exists(outname) || srtexists(outname))
+                if (File.Exists(outname) || outputexists(outname))
                 {
                     ffmpeg_Exited(proc, null);
                     return;
@@ -304,12 +334,21 @@ namespace whisperer
                     if (checkBox2.Checked)
                         translate = " -tr ";
                     proc.StartInfo.FileName = "main.exe";
-                    proc.StartInfo.Arguments = "--language " + glblang + translate + "--output-srt --max-context 0 --model \"" +
+
+                    string outtypes = "";
+                    if (checkBox4.Checked)
+                        outtypes = "--output-srt ";
+                    if (checkBox5.Checked)
+                        outtypes += "--output-txt ";
+                    if (checkBox6.Checked)
+                        outtypes += "--output-vtt ";
+
+                    proc.StartInfo.Arguments = "--language " + glblang + translate + outtypes + "--max-context 0 --model \"" +
                         glbmodel + "\" \"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
 
-                    if (srtexists(filename))
+                    if (outputexists(filename))
                     {
                         whisper_Exited(proc, null);
                         return;
