@@ -8,5 +8,6 @@ You will need the models from here: [https://huggingface.co/ggerganov/whisper.cp
 
 Requires ffmpeg on your path, not included.
 
-![whisperer](https://github.com/tigros/Whisperer/assets/2112911/7e1ce0a7-df81-4889-8a8d-1ff7e206c91b)
+![whispererscr](https://github.com/tigros/Whisperer/assets/2112911/87421dc0-6c3d-4971-adc1-6aacd683f014)
+
 
