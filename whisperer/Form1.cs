@@ -261,6 +261,10 @@ namespace whisperer
             if (!checkBox1.Checked)
                 return false;
             filename = filename.Remove(filename.LastIndexOf('.'));
+
+            if (filename.EndsWith(".wav"))
+                filename = filename.Remove(filename.LastIndexOf('.'));
+
             bool res = true;
             if (checkBox4.Checked)
                 res = File.Exists(filename + ".srt");
@@ -343,7 +347,7 @@ namespace whisperer
                     if (checkBox6.Checked)
                         outtypes += "--output-vtt ";
 
-                    proc.StartInfo.Arguments = "--language " + glblang + translate + outtypes + "--max-context 0 --model \"" +
+                    proc.StartInfo.Arguments = "--language " + glblang + translate + outtypes + "--no-timestamps --max-context 0 --model \"" +
                         glbmodel + "\" \"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
@@ -413,6 +417,34 @@ namespace whisperer
             }));
         }
 
+        void tryrename(string filename, string ext)
+        {
+            try
+            {
+                string oldname = filename + ".wav" + ext;
+                if (File.Exists(oldname))
+                {
+                    string newname = filename + ext;
+                    if (File.Exists(newname))
+                        File.Delete(newname);
+                    File.Move(oldname, newname);
+                }
+            }
+            catch { }
+        }
+
+        readonly string[] exts = { ".srt", ".txt", ".vtt" };
+
+        void renamewaves(string filename)
+        {
+            if (filename.EndsWith(".wav.wav", StringComparison.InvariantCultureIgnoreCase))
+            {
+                filename = filename.Remove(filename.LastIndexOf(".wav.wav", StringComparison.InvariantCultureIgnoreCase));
+                foreach (string ext in exts)
+                    tryrename(filename, ext);
+            }
+        }
+
         private void whisper_Exited(object sender, EventArgs e)
         {
             try
@@ -422,6 +454,7 @@ namespace whisperer
                 filename = filename.Substring(filename.LastIndexOf('"') + 1);
                 if (File.Exists(filename))
                     File.Delete(filename);
+                renamewaves(filename);
             }
             catch { }
             completed++;
