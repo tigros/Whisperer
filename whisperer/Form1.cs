@@ -213,11 +213,13 @@ namespace whisperer
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
+                fastObjectListView1.BeginUpdate();
                 foreach (string filename in openFileDialog1.FileNames)
                 {
                     if (!fexists(filename))
                         fastObjectListView1.AddObject(new filenameline(filename));
                 }
+                fastObjectListView1.EndUpdate();
                 setcount();
             }
         }
@@ -437,9 +439,9 @@ namespace whisperer
 
         void renamewaves(string filename)
         {
-            if (filename.EndsWith(".wav.wav", StringComparison.InvariantCultureIgnoreCase))
+            if (filename.EndsWith(".wav.wav"))
             {
-                filename = filename.Remove(filename.LastIndexOf(".wav.wav", StringComparison.InvariantCultureIgnoreCase));
+                filename = filename.Remove(filename.Length - 8);
                 foreach (string ext in exts)
                     tryrename(filename, ext);
             }
@@ -625,11 +627,13 @@ namespace whisperer
 
         private void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
         {
+            fastObjectListView1.BeginUpdate();
             foreach (string file in (string[])e.Data.GetData(DataFormats.FileDrop))
             {
                 if (!fexists(file))
                     fastObjectListView1.AddObject(new filenameline(file));
             }
+            fastObjectListView1.EndUpdate();
             setcount();
         }
 

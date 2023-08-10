@@ -88,7 +88,7 @@
             this.fastObjectListView1.Location = new System.Drawing.Point(12, 12);
             this.fastObjectListView1.Name = "fastObjectListView1";
             this.fastObjectListView1.ShowGroups = false;
-            this.fastObjectListView1.Size = new System.Drawing.Size(1206, 353);
+            this.fastObjectListView1.Size = new System.Drawing.Size(1209, 353);
             this.fastObjectListView1.TabIndex = 30;
             this.fastObjectListView1.UseCompatibleStateImageBehavior = false;
             this.fastObjectListView1.UseHotItem = true;
@@ -104,7 +104,7 @@
             // 
             this.olvColumn1.AspectName = "filename";
             this.olvColumn1.Text = "File name";
-            this.olvColumn1.Width = 875;
+            this.olvColumn1.Width = 1175;
             // 
             // button2
             // 
