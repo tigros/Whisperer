@@ -316,15 +316,45 @@ namespace whisperer
 
         private void ffmpeg_Exited(object sender, EventArgs e)
         {
-            string filename = ((Process)sender).StartInfo.Arguments;
-            filename = filename.TrimEnd('"');
-            filename = filename.Substring(filename.LastIndexOf('"') + 1);
-            qwhisper(filename);
+            qwhisper(getfilename((Process)sender));
         }
 
         string getfolder(string filename)
         {
             return glbsamefolder ? Path.GetDirectoryName(filename) : glboutdir;
+        }
+
+        void wait4it(string filename)
+        {
+            int div = 1;
+            try
+            {
+                FileInfo fi = new FileInfo(filename);
+                div = fi.Length < 10000000 ? 10 : fi.Length < 20000000 ? 3 : 1;
+            }
+            catch { }
+
+            long whispersize = 0;
+
+            while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
+            {
+                Thread.Sleep(1000 / div);
+                whispersize = getwhispersize();
+                if (whispersize > 0)
+                {
+                    for (int i = 0; i < glbwaittime / div && !cancel; i += 1000)
+                        Thread.Sleep(1000);
+                    whispersize = getwhispersize();
+                    fillmemvars();
+                }
+            }
+
+            while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
+            {
+                Thread.Sleep(1000);
+                fillmemvars();
+                whispersize = getwhispersize();
+            }
         }
 
         void qwhisper(string filename)
@@ -385,31 +415,8 @@ namespace whisperer
 
                     while (Process.GetProcessesByName("main").Length == wlen)
                         Thread.Sleep(10);
-                    
-                    FileInfo fi = new FileInfo(filename);
-                    int div = fi.Length < 10000000 ? 10 : fi.Length < 20000000 ? 3 : 1;
 
-                    long whispersize = 0;
-
-                    while (whispersize == 0 && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                    {
-                        Thread.Sleep(1000 / div);
-                        whispersize = getwhispersize();
-                        if (whispersize > 0)
-                        {
-                            for (int i = 0; i < glbwaittime / div && !cancel; i += 1000)
-                                Thread.Sleep(1000);
-                            whispersize = getwhispersize();
-                            fillmemvars();
-                        }
-                    }
-
-                    while (freemem - 200000000 < whispersize && Process.GetProcessesByName("main").Length > 0 && !cancel)
-                    {
-                        Thread.Sleep(1000);
-                        fillmemvars();
-                        whispersize = getwhispersize();
-                    }
+                    wait4it(filename);
                 }
                 catch (Exception ex)
                 {
@@ -447,13 +454,18 @@ namespace whisperer
             }
         }
 
+        string getfilename(Process p)
+        {
+            string filename = p.StartInfo.Arguments;
+            filename = filename.TrimEnd('"');
+            return filename.Substring(filename.LastIndexOf('"') + 1);
+        }
+
         private void whisper_Exited(object sender, EventArgs e)
         {
             try
             {
-                string filename = ((Process)sender).StartInfo.Arguments;
-                filename = filename.TrimEnd('"');
-                filename = filename.Substring(filename.LastIndexOf('"') + 1);
+                string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
                     File.Delete(filename);
                 renamewaves(filename);
