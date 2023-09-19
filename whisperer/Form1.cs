@@ -26,6 +26,7 @@ namespace whisperer
         List<PerformanceCounter> gpuCountersDedicated = new List<PerformanceCounter>();
         ConcurrentQueue<Action> whisperq = new ConcurrentQueue<Action>();
         bool quitq = false;
+        Stopwatch sw = new Stopwatch();
 
         public Form1()
         {
@@ -57,9 +58,10 @@ namespace whisperer
             {
                 initperfcounter();
             });
+            thr.IsBackground = true;
             thr.Start();
 
-            totmem = getvideomem();
+            getwhispersize(true);
 
             if (File.Exists("languageCodez.tsv"))
             {
@@ -78,19 +80,58 @@ namespace whisperer
                 comboBox1.Items.Add("English");
             }
 
-            textBox1.Text = readreg("outputdir", textBox1.Text);
-            textBox2.Text = readreg("modelpath", textBox2.Text);
-            comboBox1.Text = toproper(readreg("language", "English"));
-            comboBox2.Text = "Do nothing";
+            loadsettings();
 
             checkBox4.CheckedChanged += outputtype_CheckedChanged;
             checkBox5.CheckedChanged += outputtype_CheckedChanged;
             checkBox6.CheckedChanged += outputtype_CheckedChanged;
+
+            if (totmem == 0)
+            {
+                MessageBox.Show("Unsupprted GPU, will now exit.");
+                FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
+                Application.Exit();
+            }
+        }
+
+        void loadfilelist()
+        {
+            string s = readreg("files", "");
+            string[] files = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            fastObjectListView1.BeginUpdate();
+            foreach (string file in files)
+                fastObjectListView1.AddObject(new filenameline(file));
+            fastObjectListView1.EndUpdate();
+            fastObjectListView1.SelectAll();
+            setcount();
+        }
+
+        void loadsettings()
+        {
+            Cursor = Cursors.WaitCursor;
+            textBox1.Text = readreg("outputdir", textBox1.Text);
+            textBox2.Text = readreg("modelpath", textBox2.Text);
+            comboBox1.Text = toproper(readreg("language", "English"));
+            checkBox4.Checked = Convert.ToBoolean(readreg("srt", "True"));
+            checkBox5.Checked = Convert.ToBoolean(readreg("txt", "False"));
+            checkBox6.Checked = Convert.ToBoolean(readreg("vtt", "False"));
+            numericUpDown1.Value = Convert.ToDecimal(readreg("maxatonce", "10"));
+            comboBox2.Text = readreg("whendone", "Do nothing");
+            checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
+            checkBox1.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
+            checkBox2.Checked = Convert.ToBoolean(readreg("translate", "False"));
+            loadfilelist();
+            Cursor = Cursors.Default;
         }
 
         string toproper(string s)
         {
-            return s.Substring(0, 1).ToUpper() + s.Substring(1);
+            try
+            {
+                return s.Substring(0, 1).ToUpper() + s.Substring(1);
+            }
+            catch { }
+            return "English";
         }
 
         private void outputtype_CheckedChanged(object sender, EventArgs e)
@@ -102,29 +143,6 @@ namespace whisperer
                 clickedCheckBox.Checked = true;
                 clickedCheckBox.CheckedChanged += outputtype_CheckedChanged;
             }
-        }
-
-        long getvideomem()
-        {
-            try
-            {
-                for (int i = 0; i < 100; i++)
-                {
-                    using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\ControlSet001\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\00" + i.ToString("00")))
-                    {
-                        if (key != null)
-                        {
-                            object o = key.GetValue("HardwareInformation.qwMemorySize");
-                            if (o != null)
-                                return (long)o;
-                        }
-                    }
-                }
-            }
-            catch { }
-            MessageBox.Show("A critical error occurred, check graphics card/drivers!");
-            Application.Exit();
-            return 0;
         }
 
         void writereg(string name, string value)
@@ -179,6 +197,7 @@ namespace whisperer
                     MessageBox.Show(@"Unsupported Windows version, will now exit.");
                 else
                     MessageBox.Show(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from admin cmd prompt, will now exit.");
+                FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
         }
@@ -213,6 +232,7 @@ namespace whisperer
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
+                Cursor = Cursors.WaitCursor;
                 fastObjectListView1.BeginUpdate();
                 foreach (string filename in openFileDialog1.FileNames)
                 {
@@ -220,7 +240,9 @@ namespace whisperer
                         fastObjectListView1.AddObject(new filenameline(filename));
                 }
                 fastObjectListView1.EndUpdate();
+                fastObjectListView1.SelectAll();
                 setcount();
+                Cursor = Cursors.Default;
             }
         }
 
@@ -232,7 +254,7 @@ namespace whisperer
             label5.Text = "0";
         }
 
-        long getwhispersize()
+        long getwhispersize(bool filltotmem = false)
         {
             long whispersize = 0;
             try
@@ -249,10 +271,13 @@ namespace whisperer
                 proc.WaitForExit();
                 if (vals.Length >= 4)
                     whispersize = Convert.ToInt64(vals[3]);
+                if (filltotmem)
+                    totmem = Convert.ToInt64(vals[vals.Length - 1]);
             }
             catch
             {
                 MessageBox.Show("GPUmembyproc.exe not found!");
+                FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
             return whispersize;
@@ -393,7 +418,7 @@ namespace whisperer
                         return;
 
                     fillmemvars();
-                    long neededmem = 100000000;
+                    long neededmem = 400000000;
                     if (glbwaittime == 15000)
                         neededmem = 2400000000;
                     else if (glbwaittime == 20000)
@@ -599,6 +624,7 @@ namespace whisperer
                         Invoke(new Action(() =>
                         {
                             button3.Text = "Go";
+                            timer1.Enabled = false;
                             whendone();
                         }));
                     });
@@ -611,6 +637,9 @@ namespace whisperer
                     });
                     cq.IsBackground = true;
                     cq.Start();
+
+                    sw.Restart();
+                    timer1.Enabled = true;
                 }
                 else
                     cancel = true;
@@ -639,6 +668,7 @@ namespace whisperer
 
         private void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
         {
+            Cursor = Cursors.WaitCursor;
             fastObjectListView1.BeginUpdate();
             foreach (string file in (string[])e.Data.GetData(DataFormats.FileDrop))
             {
@@ -646,7 +676,9 @@ namespace whisperer
                     fastObjectListView1.AddObject(new filenameline(file));
             }
             fastObjectListView1.EndUpdate();
+            fastObjectListView1.SelectAll();
             setcount();
+            Cursor = Cursors.Default;
         }
 
         private void checkBox3_CheckedChanged(object sender, EventArgs e)
@@ -654,11 +686,51 @@ namespace whisperer
             textBox1.Enabled = !checkBox3.Checked;
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog2.ShowDialog() == DialogResult.OK)
+                textBox2.Text = openFileDialog2.FileName;
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+                textBox1.Text = folderBrowserDialog1.SelectedPath;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            label10.Text = sw.Elapsed.Hours.ToString("0") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" + 
+                sw.Elapsed.Seconds.ToString("00");
+        }
+
+        void savefilelist()
+        {
+            string s = "";
+            for (int i = 0; i < fastObjectListView1.Items.Count; i++)
+                s += fastObjectListView1.Items[i].Text + ";";
+            writereg("files", s.TrimEnd(';'));
+        }
+
+        void savesettings()
         {
             writereg("modelpath", textBox2.Text);
             writereg("outputdir", textBox1.Text);
             writereg("language", comboBox1.Text);
+            writereg("srt", checkBox4.Checked.ToString());
+            writereg("txt", checkBox5.Checked.ToString());
+            writereg("vtt", checkBox6.Checked.ToString());
+            writereg("maxatonce", numericUpDown1.Value.ToString());
+            writereg("whendone", comboBox2.Text);
+            writereg("sameasinputfolder", checkBox3.Checked.ToString());
+            writereg("skipifexists", checkBox1.Checked.ToString());
+            writereg("translate", checkBox2.Checked.ToString());
+            savefilelist();
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            savesettings();
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]

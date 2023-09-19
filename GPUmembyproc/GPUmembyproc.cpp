@@ -20,6 +20,7 @@ typedef std::tuple<DWORD, DWORD> Version;
 
 HMODULE gdi32Handle;
 PFND3DKMTQS queryD3DKMTStatistics;
+SIZE_T totmem = 0;
 
 bool GetDXGIAdapter(IDXGIAdapter **aDXGIAdapter)
 {
@@ -31,11 +32,17 @@ bool GetDXGIAdapter(IDXGIAdapter **aDXGIAdapter)
     for (i = 0; factory->EnumAdapters(i, &a1) != DXGI_ERROR_NOT_FOUND; ++i)
     {
         IDXGIAdapter *a2;
-        a1->QueryInterface(__uuidof(IDXGIAdapter), (void **)&a2);
-        DXGI_ADAPTER_DESC desc;
+        a1->QueryInterface(__uuidof(IDXGIAdapter), (void **)&a2);        
+		DXGI_ADAPTER_DESC desc;
         a2->GetDesc(&desc);
-        if (wcsstr(desc.Description, L"NVIDIA") || wcsstr(desc.Description, L"ATI") || wcsstr(desc.Description, L"AMD"))
-            *aDXGIAdapter = a2;
+		if (wcsstr(desc.Description, L"NVIDIA") || wcsstr(desc.Description, L"ATI") ||
+			wcsstr(desc.Description, L"AMD") || wcsstr(desc.Description, L"Intel"))
+		{
+			*aDXGIAdapter = a2;
+			totmem = desc.DedicatedVideoMemory;
+            if (totmem <= 512 * 1024 * 1024)
+                totmem = desc.SharedSystemMemory;
+		}
     }
 
     factory->Release();
@@ -83,9 +90,8 @@ void getgpustats(PROCESSENTRY32 *ppe, HANDLE ProcessHandle)
     {
         // Most of this block is understood thanks to wj32's work on Process Hacker
 
-        DXGI_ADAPTER_DESC adapterDesc;
         D3DKMTQS queryStatistics;
-
+		DXGI_ADAPTER_DESC adapterDesc;
         DXGIAdapter->GetDesc(&adapterDesc);
         DXGIAdapter->Release();
 
@@ -177,6 +183,18 @@ void printgpustats(char *name)
     CloseHandle(hSnapShot);
 }
 
+void printtotmem()
+{
+	if (totmem == 0)
+	{
+		IDXGIAdapter *DXGIAdapter;
+		GetDXGIAdapter(&DXGIAdapter);
+	}
+	printf("Total GPU memory:  ");
+	printcomma(totmem);
+	printf("\n");
+}
+
 int main(int argc, char *argv[])
 {
     if ((gdi32Handle = LoadLibrary(TEXT("gdi32.dll"))))
@@ -184,6 +202,7 @@ int main(int argc, char *argv[])
         queryD3DKMTStatistics = (PFND3DKMTQS)GetProcAddress(gdi32Handle, "D3DKMTQueryStatistics");
         if (queryD3DKMTStatistics)
             printgpustats(argc == 1 ? "" : argv[1]);
+		printtotmem();
         FreeLibrary(gdi32Handle);
     }
 }
