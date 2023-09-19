@@ -536,6 +536,27 @@ namespace whisperer
                 ExitWindowsEx(0, 0);
         }
 
+        bool notdone()
+        {
+            return (Process.GetProcessesByName("ffmpeg").Length > 0 || Process.GetProcessesByName("main").Length > 0 ||
+                whisperq.Count > 0) && !cancel;
+        }
+
+        void waitilldone()
+        {
+            while (true)
+            {
+                if (notdone())
+                    Thread.Sleep(1000);
+                else
+                {
+                    Thread.Sleep(3000);
+                    if (!notdone())
+                        break;
+                }
+            }
+        }
+
         void execwhisper()
         {
             foreach (string filename in glbarray)
@@ -545,9 +566,7 @@ namespace whisperer
                 convertandwhisper(filename);
             }
 
-            while ((Process.GetProcessesByName("ffmpeg").Length > 0 || Process.GetProcessesByName("main").Length > 0 ||
-                whisperq.Count > 0) && !cancel)
-                Thread.Sleep(1000);
+            waitilldone();
         }
 
         void consumeq()
