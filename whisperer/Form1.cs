@@ -543,10 +543,8 @@ namespace whisperer
 
         void waitilldone()
         {
-            while (true)
+            while (!cancel)
             {
-                if (cancel)
-                    break;
                 if (notdone())
                     Thread.Sleep(1000);
                 else
