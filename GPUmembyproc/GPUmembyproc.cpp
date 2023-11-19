@@ -25,6 +25,7 @@ SIZE_T totmem = 0;
 bool GetDXGIAdapter(IDXGIAdapter **aDXGIAdapter)
 {
     *aDXGIAdapter = NULL;
+    SIZE_T lasttot = 0;
     IDXGIFactory *factory = NULL;
     CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
     IDXGIAdapter *a1;
@@ -32,17 +33,17 @@ bool GetDXGIAdapter(IDXGIAdapter **aDXGIAdapter)
     for (i = 0; factory->EnumAdapters(i, &a1) != DXGI_ERROR_NOT_FOUND; ++i)
     {
         IDXGIAdapter *a2;
-        a1->QueryInterface(__uuidof(IDXGIAdapter), (void **)&a2);        
-		DXGI_ADAPTER_DESC desc;
+        a1->QueryInterface(__uuidof(IDXGIAdapter), (void **)&a2);
+        DXGI_ADAPTER_DESC desc;
         a2->GetDesc(&desc);
-		if (wcsstr(desc.Description, L"NVIDIA") || wcsstr(desc.Description, L"ATI") ||
-			wcsstr(desc.Description, L"AMD") || wcsstr(desc.Description, L"Intel"))
-		{
-			*aDXGIAdapter = a2;
-			totmem = desc.DedicatedVideoMemory;
+        if ((wcsstr(desc.Description, L"NVIDIA") || wcsstr(desc.Description, L"ATI") ||
+            wcsstr(desc.Description, L"AMD") || wcsstr(desc.Description, L"Intel")) && desc.DedicatedVideoMemory > lasttot)
+        {
+            *aDXGIAdapter = a2;
+            lasttot = totmem = desc.DedicatedVideoMemory;
             if (totmem <= 512 * 1024 * 1024)
                 totmem = desc.SharedSystemMemory;
-		}
+        }
     }
 
     factory->Release();
