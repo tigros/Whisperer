@@ -8,7 +8,8 @@ You will need the models from here: [http://198.100.146.225/Downloads/whisper-mo
 
 Requires ffmpeg on your path, not included.
 
-![shot](https://github.com/tigros/Whisperer/assets/2112911/b1b258b8-989a-4819-a5ec-6bcab137a10f)
+![scrshot](https://github.com/tigros/Whisperer/assets/2112911/9fb123ee-c5fc-4dcd-8ea4-f8b8a5fe159c)
+
 
 
 
