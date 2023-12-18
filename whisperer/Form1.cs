@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
+using TaskScheduler;
 
 namespace whisperer
 {
@@ -19,7 +21,7 @@ namespace whisperer
         ArrayList glbarray = new ArrayList();
         string glbmodel = "";
         int completed = 0;
-        string glboutdir, glblang;
+        string glboutdir, glblang, glbprompt;
         int glbwaittime = 0;
         Dictionary<string, string> langs = new Dictionary<string, string>();
         bool glbsamefolder = false;
@@ -27,6 +29,9 @@ namespace whisperer
         ConcurrentQueue<Action> whisperq = new ConcurrentQueue<Action>();
         bool quitq = false;
         Stopwatch sw = new Stopwatch();
+        string rootdir = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
+        static ScheduledTasks schedtask = null;
+        static TaskScheduler.Task tasksched = null;
 
         public Form1()
         {
@@ -52,14 +57,19 @@ namespace whisperer
             return false;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        void Form1_Load(object sender, EventArgs e)
         {
-            Thread thr = new Thread(() =>
-            {
-                initperfcounter();
-            });
+            Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
+
+            Thread watchthr = new Thread(watchwait);
+            watchthr.IsBackground = true;
+            watchthr.Start();
+
+            Thread waitlaunch = new Thread(wait4launch);
+            waitlaunch.IsBackground = true;
+            waitlaunch.Start();
 
             getwhispersize(true);
 
@@ -75,7 +85,7 @@ namespace whisperer
             }
             else
             {
-                MessageBox.Show("languageCodez.tsv missing!");
+                ShowError("languageCodez.tsv missing!");
                 langs.Add("English", "en");
                 comboBox1.Items.Add("English");
             }
@@ -88,10 +98,12 @@ namespace whisperer
 
             if (totmem == 0)
             {
-                MessageBox.Show("Unsupprted GPU, will now exit.");
+                ShowError("Unsupprted GPU, will now exit.");
                 FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
+            else if (Program.iswatch)
+                button3_Click(null, null);
         }
 
         void loadfilelist()
@@ -120,6 +132,8 @@ namespace whisperer
             checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
             checkBox1.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
             checkBox2.Checked = Convert.ToBoolean(readreg("translate", "False"));
+            textBox3.Text = readreg("watchfolders", textBox3.Text);
+            textBox4.Text = readreg("prompt", textBox4.Text);
             loadfilelist();
             Cursor = Cursors.Default;
         }
@@ -134,7 +148,7 @@ namespace whisperer
             return "English";
         }
 
-        private void outputtype_CheckedChanged(object sender, EventArgs e)
+        void outputtype_CheckedChanged(object sender, EventArgs e)
         {
             CheckBox clickedCheckBox = sender as CheckBox;
             if (!clickedCheckBox.Checked && !checkBox4.Checked && !checkBox5.Checked && !checkBox6.Checked)
@@ -194,9 +208,9 @@ namespace whisperer
             catch (Exception ex)
             {
                 if (ex.HResult == -2146233079)
-                    MessageBox.Show(@"Unsupported Windows version, will now exit.");
+                    ShowError(@"Unsupported Windows version, will now exit.");
                 else
-                    MessageBox.Show(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from admin cmd prompt, will now exit.");
+                    ShowError(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from admin cmd prompt, will now exit.");
                 FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
@@ -228,7 +242,7 @@ namespace whisperer
             return false;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        void button1_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
@@ -246,7 +260,7 @@ namespace whisperer
             }
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        void button2_Click(object sender, EventArgs e)
         {
             fastObjectListView1.ClearObjects();
             setcount();
@@ -276,7 +290,7 @@ namespace whisperer
             }
             catch
             {
-                MessageBox.Show("GPUmembyproc.exe not found!");
+                ShowError("GPUmembyproc.exe not found!");
                 FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
@@ -285,7 +299,7 @@ namespace whisperer
 
         bool outputexists(string filename)
         {
-            if (!checkBox1.Checked)
+            if (!checkBox1.Checked && !Program.iswatch)
                 return false;
             filename = filename.Remove(filename.LastIndexOf('.'));
 
@@ -335,11 +349,11 @@ namespace whisperer
             catch (Exception ex)
             {
                 cancel = true;
-                MessageBox.Show("ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer");
+                ShowError("ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer");
             }
         }
 
-        private void ffmpeg_Exited(object sender, EventArgs e)
+        void ffmpeg_Exited(object sender, EventArgs e)
         {
             qwhisper(getfilename((Process)sender));
         }
@@ -404,8 +418,12 @@ namespace whisperer
                     if (checkBox6.Checked)
                         outtypes += "--output-vtt ";
 
+                    string prompt = " ";
+                    if (glbprompt != "")
+                        prompt = " --prompt \"" + glbprompt + "\" ";
+
                     proc.StartInfo.Arguments = "--language " + glblang + translate + outtypes + "--no-timestamps --max-context 0 --model \"" +
-                        glbmodel + "\" \"" + filename + "\"";
+                        glbmodel + "\"" + prompt + "\"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
 
@@ -446,7 +464,7 @@ namespace whisperer
                 catch (Exception ex)
                 {
                     cancel = true;
-                    MessageBox.Show(ex.ToString());
+                    ShowError(ex.ToString());
                 }
             }));
         }
@@ -486,17 +504,20 @@ namespace whisperer
             return filename.Substring(filename.LastIndexOf('"') + 1);
         }
 
-        private void whisper_Exited(object sender, EventArgs e)
+        void whisper_Exited(object sender, EventArgs e)
         {
             try
             {
                 string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
+                {
+                    completed++;
                     File.Delete(filename);
+                }
                 renamewaves(filename);
             }
             catch { }
-            completed++;
+
             Invoke(new Action(() =>
             {
                 label5.Text = completed.ToString("#,##0");
@@ -505,15 +526,15 @@ namespace whisperer
 
         bool checkdir()
         {
-            if (!checkBox3.Checked && !Directory.Exists(textBox1.Text))
+            if (!checkBox3.Checked && !Directory.Exists(glboutdir))
             {
                 try
                 {
-                    Directory.CreateDirectory(textBox1.Text);
+                    Directory.CreateDirectory(glboutdir);
                 }
                 catch
                 {
-                    MessageBox.Show("An error occured creating directory " + textBox1.Text);
+                    ShowError("An error occured creating directory " + glboutdir);
                     return false;
                 }
             }
@@ -522,7 +543,7 @@ namespace whisperer
 
         void whendone()
         {
-            if (cancel)
+            if (cancel || Program.iswatch)
                 return;
             if (comboBox2.Text == "Shutdown")
                 Process.Start("shutdown", "/s /t 1");
@@ -556,7 +577,7 @@ namespace whisperer
             }
         }
 
-        void execwhisper()
+        void processarray()
         {
             foreach (string filename in glbarray)
             {
@@ -564,7 +585,24 @@ namespace whisperer
                     break;
                 convertandwhisper(filename);
             }
+        }
 
+        void checkwatchfolders()
+        {
+            if (!Program.iswatch)
+            {
+                Program.iswatch = true;
+                glbarray.Clear();
+                loadwatchfilelist();
+                processarray();
+                Program.iswatch = false;
+            }
+        }
+
+        void execwhisper()
+        {
+            processarray();
+            checkwatchfolders();
             waitilldone();
         }
 
@@ -579,24 +617,75 @@ namespace whisperer
             }
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        bool isagen(string[] exts, ref string fname)
+        {
+            try
+            {
+                string ext = Path.GetExtension(fname).ToUpper();
+                foreach (string s in exts)
+                {
+                    if (s == ext)
+                        return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        readonly string[] audioext = {".3GA", ".669", ".A52", ".AAC", ".AAX", ".AC3", ".ADT", ".ADTS", ".AIF", ".AIFC",
+            ".AIFF", ".AMB", ".AMR", ".AOB", ".APE", ".AU", ".AWB", ".CAF", ".DTS", ".FLAC", // ".DSF", ".DFF",
+            ".IT", ".KAR", ".M4A", ".M4B", ".M4P", ".M4R", ".M5P", ".MID", ".MKA", ".MLP", ".MOD", ".MPA", ".MP1", ".MP2",
+            ".MP3", ".MPC", ".MPGA", ".MUS", ".OGA", ".OGG", ".OMA", ".OPUS", ".QCP", ".RA", ".RMI", ".S3M", ".SID",
+            ".SPX", ".TAK", ".THD", ".TTA", ".VOC", ".VOX", ".VQF", ".W64", ".WAV", ".WMA", ".WV", ".XA", ".XM" };
+       
+        readonly string[] videoext = {".3G2", ".3GP", ".3GP2", ".3GPP", ".AMV", ".ASF", ".AVI", ".BIK", ".BIN", ".CRF",
+            ".DIVX", ".DRC", ".DV", ".DVR-MS", ".EVO", ".F4V", ".FLV", ".GVI", ".GXF", ".ISO", ".M1V", ".M2V",
+            ".M2T", ".M2TS", ".M4V", ".MKV", ".MOV", ".MP2", ".MP2V", ".MP4", ".MP4V", ".MPE", ".MPEG", ".MPEG1",
+            ".MPEG2", ".MPEG4", ".MPG", ".MPV2", ".MTS", ".MTV", ".MXF", ".MXG", ".NSV", ".NUV", ".OGM",
+            ".OGV", ".OGX", ".RAM", ".REC", ".RM", ".RMVB", ".RPL", ".THP", ".TOD", ".TP", ".TS", ".TTS", ".TXD",
+            ".VOB", ".VRO", ".WEBM", ".WM", ".WMV", ".WTV", ".XESC"};
+
+        bool issoundtype(string fname)
+        {
+            return isagen(audioext, ref fname) || isagen(videoext, ref fname);
+        }
+
+        void loadwatchfilelist()
+        {
+            string[] folders = textBox3.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string folder in folders)
+            {
+                try
+                {
+                    string[] files = Directory.GetFiles(folder);
+                    foreach (string file in files)
+                        if (issoundtype(file) && !glbarray.Contains(file))
+                            glbarray.Add(file);
+                }
+                catch { }
+            }
+        }
+
+        void button3_Click(object sender, EventArgs e)
         {
             try
             {
                 if (button3.Text == "Go")
                 {
-                    if (fastObjectListView1.SelectedObjects.Count == 0)
+                    if (fastObjectListView1.SelectedObjects.Count == 0 && textBox3.Text.Trim() == "")
                     {
-                        MessageBox.Show("No files selected!");
+                        ShowError("No files selected!");
                         return;
                     }
+                    glboutdir = textBox1.Text.Trim();
+                    glbprompt = textBox4.Text.Trim();
                     if (!checkdir())
                         return;
                     glbarray.Clear();
                     glbmodel = textBox2.Text;
                     if (!File.Exists(glbmodel))
                     {
-                        MessageBox.Show(glbmodel + " not found!");
+                        ShowError(glbmodel + " not found!");
                         return;
                     }
 
@@ -609,17 +698,26 @@ namespace whisperer
                     if ((glbwaittime == 15000 && totmem < 2400000000) ||
                         (glbwaittime == 20000 && totmem < 4300000000))
                     {
-                        MessageBox.Show("Insufficient graphics memory for this model!");
+                        ShowError("Insufficient graphics memory for this model!");
                         return;
                     }
 
-                    foreach (filenameline filename in fastObjectListView1.SelectedObjects)
-                        glbarray.Add(filename.filename);
+                    if (Program.iswatch)
+                    {
+                        loadwatchfilelist();
+                        if (glbarray.Count == 0)
+                        {
+                            Program.iswatch = false;
+                            return;
+                        }
+                    }
+                    else
+                        foreach (filenameline filename in fastObjectListView1.SelectedObjects)
+                            glbarray.Add(filename.filename);
                     cancel = false;
                     button3.Text = "Cancel";
                     completed = 0;
                     label5.Text = "0";
-                    glboutdir = textBox1.Text;
                     glbsamefolder = checkBox3.Checked;
                     glblang = "en";
                     Action act = null;
@@ -645,14 +743,12 @@ namespace whisperer
                             timer1.Enabled = false;
                             whendone();
                         }));
+                        Program.iswatch = false;
                     });
                     thr.IsBackground = true;
                     thr.Start();
 
-                    Thread cq = new Thread(() =>
-                    {
-                        consumeq();
-                    });
+                    Thread cq = new Thread(consumeq);
                     cq.IsBackground = true;
                     cq.Start();
 
@@ -671,12 +767,12 @@ namespace whisperer
                 fastObjectListView1.Items.Count.ToString("#,##0");
         }
 
-        private void fastObjectListView1_SelectionChanged(object sender, EventArgs e)
+        void fastObjectListView1_SelectionChanged(object sender, EventArgs e)
         {
             setcount();
-        }        
+        }
 
-        private void fastObjectListView1_DragEnter(object sender, DragEventArgs e)
+        void fastObjectListView1_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 e.Effect = DragDropEffects.Copy;
@@ -684,7 +780,7 @@ namespace whisperer
                 e.Effect = DragDropEffects.None;
         }
 
-        private void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
+        void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
         {
             Cursor = Cursors.WaitCursor;
             fastObjectListView1.BeginUpdate();
@@ -699,26 +795,26 @@ namespace whisperer
             Cursor = Cursors.Default;
         }
 
-        private void checkBox3_CheckedChanged(object sender, EventArgs e)
+        void checkBox3_CheckedChanged(object sender, EventArgs e)
         {
             textBox1.Enabled = !checkBox3.Checked;
         }
 
-        private void button4_Click(object sender, EventArgs e)
+        void button4_Click(object sender, EventArgs e)
         {
             if (openFileDialog2.ShowDialog() == DialogResult.OK)
                 textBox2.Text = openFileDialog2.FileName;
         }
 
-        private void button5_Click(object sender, EventArgs e)
+        void button5_Click(object sender, EventArgs e)
         {
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
                 textBox1.Text = folderBrowserDialog1.SelectedPath;
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
+        void timer1_Tick(object sender, EventArgs e)
         {
-            label10.Text = sw.Elapsed.Hours.ToString("0") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" + 
+            label10.Text = sw.Elapsed.Hours.ToString("0") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" +
                 sw.Elapsed.Seconds.ToString("00");
         }
 
@@ -743,12 +839,238 @@ namespace whisperer
             writereg("sameasinputfolder", checkBox3.Checked.ToString());
             writereg("skipifexists", checkBox1.Checked.ToString());
             writereg("translate", checkBox2.Checked.ToString());
+            writereg("watchfolders", textBox3.Text);
+            writereg("prompt", textBox4.Text);
             savefilelist();
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             savesettings();
+        }
+
+        void button6_Click(object sender, EventArgs e)
+        {
+            if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                string inputf = folderBrowserDialog1.SelectedPath;
+                string[] folders = textBox3.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                string s = "";
+                foreach (string f in folders)
+                {
+                    if (string.Equals(inputf, f, StringComparison.InvariantCultureIgnoreCase))
+                        return;
+                    s += f + ";";
+                }
+                textBox3.Text = s + inputf;
+            }
+        }
+
+        void watchwait()
+        {
+            while (true)
+            {
+                using (var stream = new NamedPipeServerStream("whispererwatchpipe", PipeDirection.InOut))
+                    stream.WaitForConnection();
+
+                if (button3.Text == "Go")
+                {
+                    Program.iswatch = true;
+                    Invoke(new Action(() =>
+                    {
+                        button3_Click(null, null);
+                    }));
+                }
+            }
+        }
+
+        void wait4launch()
+        {
+            while (true)
+            {
+                try
+                {
+                    using (var stream = new NamedPipeServerStream("whispererlaunchpipe", PipeDirection.InOut))
+                        stream.WaitForConnection();
+                    Invoke(new Action(() =>
+                    {
+                        SetForegroundWindow(Handle);
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    ShowError(ex.ToString());
+                }
+            }
+        }
+
+        string getapp()
+        {
+            string app = Environment.GetCommandLineArgs()[0];
+            if (app[0] != '"')
+                app = '"' + app + '"';
+            return app;
+        }
+
+        string getqlaunch()
+        {
+            return '"' + Path.Combine(rootdir, "qlaunch.exe") + '"';
+        }
+
+        void loosets()
+        {
+            try
+            {
+                if (tasksched != null)
+                {
+                    tasksched.Triggers.Clear();
+                    tasksched.Dispose();
+                    tasksched = null;
+                }
+            }
+            catch { }
+        }
+
+        TaskScheduler.Task CreateTask(string name)
+        {
+            try
+            {
+                tasksched = schedtask.CreateTask(name);
+            }
+            catch (ArgumentException)
+            {
+                Console.WriteLine("Task already exists");
+                return null;
+            }
+            try
+            {
+                tasksched.ApplicationName = getqlaunch();
+                tasksched.Parameters = getapp() + " /watch";
+                tasksched.Comment = "Whisperer folder watcher";
+                tasksched.Creator = Environment.UserName;
+                tasksched.WorkingDirectory = rootdir;
+                tasksched.Flags = TaskFlags.RunOnlyIfLoggedOn;
+                tasksched.SetAccountInformation(Environment.UserName, (string)null);
+                tasksched.MaxRunTimeLimited = false;
+                tasksched.Priority = System.Diagnostics.ProcessPriorityClass.Normal;
+                tasksched.Triggers.Add(new DailyTrigger(3, 0, 1));
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex.ToString());
+            }
+            return tasksched;
+        }
+
+        bool setuptask()
+        {
+            bool had1 = false;
+            if (schedtask == null)
+                schedtask = new ScheduledTasks();
+            loosets();
+            tasksched = schedtask.OpenTask("Whisperer");
+            if (tasksched == null)
+                CreateTask("Whisperer");
+            else
+            {
+                tasksched.ApplicationName = getqlaunch();
+                tasksched.WorkingDirectory = rootdir;
+                had1 = true;
+            }
+            return had1;
+        }
+
+        void saveworkaround()
+        {
+            try
+            {
+                tasksched.Save();
+                setuptask();
+                schedtask.DeleteTask("Whisperer");
+
+                Trigger[] tgs = new Trigger[tasksched.Triggers.Count];
+                tasksched.Triggers.CopyTo(tgs, 0);
+                setuptask();
+                tasksched.Triggers.Clear();
+
+                foreach (DailyTrigger t in tgs)
+                    tasksched.Triggers.Add(t);
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex.ToString());
+            }
+        }
+
+        DialogResult ShowMsgProc(string msg, bool iserr, string caption = "Whisperer", MessageBoxButtons mbb = MessageBoxButtons.OK)
+        {
+            MessageBoxIcon mbi;
+            DialogResult dr = DialogResult.OK;
+            if (mbb == MessageBoxButtons.OK)
+                mbi = iserr ? MessageBoxIcon.Error : MessageBoxIcon.Information;
+            else
+                mbi = MessageBoxIcon.Question;
+            dr = MessageBox.Show(msg, caption, mbb, mbi);
+            return dr;
+        }
+
+        void ShowMsg(string msg)
+        {
+            ShowMsgProc(msg, false);
+        }
+
+        void ShowError(string msg)
+        {
+            ShowMsgProc(msg, true);
+        }
+
+        DialogResult AskQuestion(string msg, string caption, MessageBoxButtons buttons)
+        {
+            return ShowMsgProc(msg, false, caption, buttons);
+        }
+
+        void DoTask()
+        {
+            try
+            {
+                bool had1 = setuptask();
+                if (tasksched == null)
+                    return;
+
+                if (tasksched.DisplayPropertySheet(TaskScheduler.Task.PropPages.Schedule))
+                {
+                    try
+                    {
+                        tasksched.Parameters = getapp() + " /watch";
+                        saveworkaround();
+                        tasksched.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowError(ex.ToString());
+                    }
+                }
+                else if (had1)
+                {
+                    string message = "Delete the scheduled task?";
+                    string caption = "Delete Schedule";
+                    MessageBoxButtons buttons = MessageBoxButtons.YesNo;
+                    DialogResult result = AskQuestion(message, caption, buttons);
+                    if (result == DialogResult.Yes)
+                        schedtask.DeleteTask("Whisperer");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex.ToString());
+            }
+
+            loosets();
+        }
+
+        void button7_Click(object sender, EventArgs e)
+        {
+            DoTask();
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -762,6 +1084,10 @@ namespace whisperer
 
         [DllImport("user32.dll")]
         public static extern void LockWorkStation();
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
     }
 
     public class filenameline
