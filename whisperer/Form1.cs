@@ -602,6 +602,7 @@ namespace whisperer
         void execwhisper()
         {
             processarray();
+            waitilldone();
             checkwatchfolders();
             waitilldone();
         }
