@@ -595,6 +595,8 @@ namespace whisperer
                 glbarray.Clear();
                 loadwatchfilelist();
                 processarray();
+                if (glbarray.Count > 0)
+                    waitilldone();
                 Program.iswatch = false;
             }
         }
@@ -604,7 +606,6 @@ namespace whisperer
             processarray();
             waitilldone();
             checkwatchfolders();
-            waitilldone();
         }
 
         void consumeq()
