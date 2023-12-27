@@ -59,6 +59,14 @@ namespace whisperer
 
         void Form1_Load(object sender, EventArgs e)
         {
+            if (!IsAtLeastWindows10())
+            {
+                ShowError(@"Unsupported Windows version, will now exit.");
+                FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
+                Application.Exit();
+                return;
+            }
+
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
@@ -104,6 +112,18 @@ namespace whisperer
             }
             else if (Program.iswatch)
                 button3_Click(null, null);
+        }
+
+        bool IsAtLeastWindows10()
+        {
+            try
+            {
+                string productName = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "");
+                return productName.Contains("Windows 1") || productName.Contains("Windows 2") || productName.Contains("Windows 3"); 
+            }
+            catch { }
+
+            return false;
         }
 
         void loadfilelist()
@@ -207,10 +227,7 @@ namespace whisperer
             }
             catch (Exception ex)
             {
-                if (ex.HResult == -2146233079)
-                    ShowError(@"Unsupported Windows version, will now exit.");
-                else
-                    ShowError(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from admin cmd prompt, will now exit.");
+                ShowError(@"Possibly corrupt perf counters, try C:\Windows\SysWOW64\LODCTR /R from elevated cmd prompt, if an error occurs, run it again. Will now exit.");
                 FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
                 Application.Exit();
             }
