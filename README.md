@@ -4,7 +4,7 @@ It uses OpenAI's whisper, it runs as many instances simultaneously as your GPU's
 
 Update: now uses [https://github.com/Const-me/Whisper](https://github.com/Const-me/Whisper) GPU enabled whispercpp, thanks to Kosta for this major speed improvement!
 
-You will need the models from here: [https://huggingface.co/ggerganov/whisper.cpp/tree/main](https://huggingface.co/ggerganov/whisper.cpp/tree/main)
+You will need the models from here: [https://huggingface.co/ggerganov/whisper.cpp/tree/main](https://huggingface.co/ggerganov/whisper.cpp/tree/main)  
 Do NOT use v3 it is not supported yet!
 
 Requires ffmpeg on your path, not included.

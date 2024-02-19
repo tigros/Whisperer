@@ -121,7 +121,7 @@
             // 
             this.olvColumn1.AspectName = "filename";
             this.olvColumn1.Text = "File name";
-            this.olvColumn1.Width = 850;
+            this.olvColumn1.Width = 1150;
             // 
             // button2
             // 
@@ -325,6 +325,7 @@
             this.comboBox2.FormattingEnabled = true;
             this.comboBox2.Items.AddRange(new object[] {
             "Do nothing",
+            "Play sound",
             "Shutdown",
             "Sleep",
             "Hibernate",

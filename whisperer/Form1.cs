@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
+using System.Media;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -275,6 +276,16 @@ namespace whisperer
                 setcount();
                 Cursor = Cursors.Default;
             }
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Delete)
+            {
+                fastObjectListView1.RemoveObjects(fastObjectListView1.SelectedObjects);
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
         }
 
         void button2_Click(object sender, EventArgs e)
@@ -572,6 +583,8 @@ namespace whisperer
                 LockWorkStation();
             else if (comboBox2.Text == "Log off")
                 ExitWindowsEx(0, 0);
+            else if (comboBox2.Text == "Play sound")
+                new SoundPlayer(Properties.Resources.tada).Play();
         }
 
         bool notdone()
