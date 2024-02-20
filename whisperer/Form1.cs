@@ -280,7 +280,7 @@ namespace whisperer
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if (keyData == Keys.Delete)
+            if (keyData == Keys.Delete && fastObjectListView1.Focused)
             {
                 fastObjectListView1.RemoveObjects(fastObjectListView1.SelectedObjects);
                 return true;
