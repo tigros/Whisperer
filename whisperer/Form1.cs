@@ -538,10 +538,8 @@ namespace whisperer
             {
                 string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
-                {
-                    completed++;
                     File.Delete(filename);
-                }
+                completed++;
                 renamewaves(filename);
             }
             catch { }
