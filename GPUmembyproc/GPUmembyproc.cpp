@@ -38,7 +38,7 @@ bool GetDXGIAdapter(IDXGIAdapter **aDXGIAdapter)
         a2->GetDesc(&desc);
         if ((wcsstr(desc.Description, L"NVIDIA") || wcsstr(desc.Description, L"ATI") ||
             wcsstr(desc.Description, L"AMD") || wcsstr(desc.Description, L"Intel") ||
-	    wcsstr(desc.Description, L"Radeon")) && desc.DedicatedVideoMemory > lasttot)
+	        wcsstr(desc.Description, L"Radeon")) && desc.DedicatedVideoMemory > lasttot)
         {
             *aDXGIAdapter = a2;
             lasttot = totmem = desc.DedicatedVideoMemory;
