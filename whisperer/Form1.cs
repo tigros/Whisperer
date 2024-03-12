@@ -60,7 +60,7 @@ namespace whisperer
 
         void Form1_Load(object sender, EventArgs e)
         {
-            if (!IsAtLeastWindows10())
+            if (IsAtLeastWindows10())
             {
                 ShowError(@"Unsupported Windows version, will now exit.");
                 FormClosing -= new FormClosingEventHandler(Form1_FormClosing);
