@@ -95,6 +95,7 @@
             this.fastObjectListView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.fastObjectListView1.AutoArrange = false;
             this.fastObjectListView1.CellEditUseWholeCell = false;
             this.fastObjectListView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.olvColumn1});
@@ -121,7 +122,7 @@
             // 
             this.olvColumn1.AspectName = "filename";
             this.olvColumn1.Text = "File name";
-            this.olvColumn1.Width = 1150;
+            this.olvColumn1.Width = 875;
             // 
             // button2
             // 

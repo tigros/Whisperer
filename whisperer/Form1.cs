@@ -33,6 +33,7 @@ namespace whisperer
         string rootdir = Path.GetDirectoryName(Environment.GetCommandLineArgs()[0]);
         static ScheduledTasks schedtask = null;
         static TaskScheduler.Task tasksched = null;
+        long largereq = 0;
 
         public Form1()
         {
@@ -468,7 +469,7 @@ namespace whisperer
                     if (glbwaittime == 15000)
                         neededmem = 2400000000;
                     else if (glbwaittime == 20000)
-                        neededmem = 4300000000;
+                        neededmem = largereq;
 
                     while (freemem < neededmem && !cancel)
                     {
@@ -720,13 +721,19 @@ namespace whisperer
                     }
 
                     glbwaittime = 10000;
+                    largereq = 4300000000;
+
                     if (glbmodel.ToLower().Contains("medium"))
                         glbwaittime = 15000;
                     else if (glbmodel.ToLower().Contains("large"))
+                    {
                         glbwaittime = 20000;
+                        if (totmem < 5000000000)
+                            largereq = 3000000000;
+                    }
 
                     if ((glbwaittime == 15000 && totmem < 2400000000) ||
-                        (glbwaittime == 20000 && totmem < 4300000000))
+                        (glbwaittime == 20000 && totmem < largereq))
                     {
                         ShowError("Insufficient graphics memory for this model!");
                         return;
