@@ -124,6 +124,7 @@
             // olvColumn1
             // 
             this.olvColumn1.AspectName = "filename";
+            this.olvColumn1.HeaderFont = new System.Drawing.Font("Calibri", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.olvColumn1.Text = "File name";
             this.olvColumn1.Width = 875;
             // 
