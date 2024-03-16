@@ -144,7 +144,7 @@ namespace whisperer
         {
             Cursor = Cursors.WaitCursor;
             textBox1.Text = readreg("outputdir", textBox1.Text);
-            textBox2.Text = readreg("modelpath", textBox2.Text);
+            modelPathTextBox.Text = readreg("modelpath", modelPathTextBox.Text);
             comboBox1.Text = toproper(readreg("language", "English"));
             checkBox4.Checked = Convert.ToBoolean(readreg("srt", "True"));
             checkBox5.Checked = Convert.ToBoolean(readreg("txt", "False"));
@@ -713,7 +713,7 @@ namespace whisperer
                     if (!checkdir())
                         return;
                     glbarray.Clear();
-                    glbmodel = textBox2.Text;
+                    glbmodel = modelPathTextBox.Text;
                     if (!File.Exists(glbmodel))
                     {
                         ShowError(glbmodel + " not found!");
@@ -840,7 +840,7 @@ namespace whisperer
         void button4_Click(object sender, EventArgs e)
         {
             if (openFileDialog2.ShowDialog() == DialogResult.OK)
-                textBox2.Text = openFileDialog2.FileName;
+                modelPathTextBox.Text = openFileDialog2.FileName;
         }
 
         void button5_Click(object sender, EventArgs e)
@@ -865,7 +865,7 @@ namespace whisperer
 
         void savesettings()
         {
-            writereg("modelpath", textBox2.Text);
+            writereg("modelpath", modelPathTextBox.Text);
             writereg("outputdir", textBox1.Text);
             writereg("language", comboBox1.Text);
             writereg("srt", checkBox4.Checked.ToString());
