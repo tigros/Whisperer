@@ -537,6 +537,10 @@ namespace whisperer
         {
             try
             {
+                var proc = sender as Process;
+                if (proc.ExitCode != 0)
+                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}");
+
                 string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
                     File.Delete(filename);
