@@ -701,7 +701,7 @@ namespace whisperer
         {
             try
             {
-                if (button3.Text == "Go")
+                if (goButton.Text == "Go")
                 {
                     if (fastObjectListView1.SelectedObjects.Count == 0 && textBox3.Text.Trim() == "")
                     {
@@ -752,7 +752,7 @@ namespace whisperer
                         foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                             glbarray.Add(filename.filename);
                     cancel = false;
-                    button3.Text = "Cancel";
+                    goButton.Text = "Cancel";
                     completed = 0;
                     label5.Text = "0";
                     glbsamefolder = checkBox3.Checked;
@@ -776,7 +776,7 @@ namespace whisperer
                         quitq = true;
                         Invoke(new Action(() =>
                         {
-                            button3.Text = "Go";
+                            goButton.Text = "Go";
                             timer1.Enabled = false;
                             whendone();
                         }));
@@ -910,7 +910,7 @@ namespace whisperer
                 using (var stream = new NamedPipeServerStream("whispererwatchpipe", PipeDirection.InOut))
                     stream.WaitForConnection();
 
-                if (button3.Text == "Go")
+                if (goButton.Text == "Go")
                 {
                     Program.iswatch = true;
                     Invoke(new Action(() =>
