@@ -42,7 +42,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.skipIfExistCheckBox = new System.Windows.Forms.CheckBox();
             this.modelPathTextBox = new System.Windows.Forms.TextBox();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label6 = new System.Windows.Forms.Label();
@@ -222,18 +222,18 @@
             // 
             // checkBox1
             // 
-            this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Checked = true;
-            this.checkBox1.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox1.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.checkBox1.Location = new System.Drawing.Point(619, 475);
-            this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(137, 21);
-            this.checkBox1.TabIndex = 40;
-            this.checkBox1.Text = "Skip if output exists";
-            this.checkBox1.UseVisualStyleBackColor = true;
+            this.skipIfExistCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.skipIfExistCheckBox.AutoSize = true;
+            this.skipIfExistCheckBox.Checked = true;
+            this.skipIfExistCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.skipIfExistCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.skipIfExistCheckBox.Location = new System.Drawing.Point(619, 475);
+            this.skipIfExistCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.skipIfExistCheckBox.Name = "checkBox1";
+            this.skipIfExistCheckBox.Size = new System.Drawing.Size(137, 21);
+            this.skipIfExistCheckBox.TabIndex = 40;
+            this.skipIfExistCheckBox.Text = "Skip if output exists";
+            this.skipIfExistCheckBox.UseVisualStyleBackColor = true;
             // 
             // textBox2
             // 
@@ -558,7 +558,7 @@
             this.Controls.Add(this.label6);
             this.Controls.Add(this.checkBox2);
             this.Controls.Add(this.modelPathTextBox);
-            this.Controls.Add(this.checkBox1);
+            this.Controls.Add(this.skipIfExistCheckBox);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
@@ -596,7 +596,7 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.CheckBox skipIfExistCheckBox;
         private System.Windows.Forms.TextBox modelPathTextBox;
         private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.Label label6;

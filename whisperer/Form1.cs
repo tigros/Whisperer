@@ -152,7 +152,7 @@ namespace whisperer
             numericUpDown1.Value = Convert.ToDecimal(readreg("maxatonce", "10"));
             comboBox2.Text = readreg("whendone", "Do nothing");
             checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
-            checkBox1.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
+            skipIfExistCheckBox.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
             checkBox2.Checked = Convert.ToBoolean(readreg("translate", "False"));
             textBox3.Text = readreg("watchfolders", textBox3.Text);
             textBox4.Text = readreg("prompt", textBox4.Text);
@@ -328,7 +328,7 @@ namespace whisperer
 
         bool outputexists(string filename)
         {
-            if (!checkBox1.Checked && !Program.iswatch)
+            if (!skipIfExistCheckBox.Checked && !Program.iswatch)
                 return false;
             filename = filename.Remove(filename.LastIndexOf('.'));
 
@@ -874,7 +874,7 @@ namespace whisperer
             writereg("maxatonce", numericUpDown1.Value.ToString());
             writereg("whendone", comboBox2.Text);
             writereg("sameasinputfolder", checkBox3.Checked.ToString());
-            writereg("skipifexists", checkBox1.Checked.ToString());
+            writereg("skipifexists", skipIfExistCheckBox.Checked.ToString());
             writereg("translate", checkBox2.Checked.ToString());
             writereg("watchfolders", textBox3.Text);
             writereg("prompt", textBox4.Text);
