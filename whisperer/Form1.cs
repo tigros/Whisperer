@@ -69,6 +69,8 @@ namespace whisperer
                 return;
             }
 
+            goButton.Enabled = false;
+
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
@@ -216,6 +218,8 @@ namespace whisperer
         {
             try
             {
+                Debug.WriteLine("Initializing GPU counters...");
+
                 var category = new PerformanceCounterCategory("GPU Adapter Memory");
                 var counterNames = category.GetInstanceNames();
                 foreach (string counterName in counterNames)
@@ -223,9 +227,15 @@ namespace whisperer
                     foreach (var counter in category.GetCounters(counterName))
                     {
                         if (counter.CounterName == "Dedicated Usage")
+                        {
+                            Debug.WriteLine($"  {counter.InstanceName}");
                             gpuCountersDedicated.Add(counter);
+                        }
                     }
                 }
+
+                Debug.WriteLine("GPU counters have been initialized");
+                goButton.BeginInvoke((Action)delegate { goButton.Enabled = true; });
             }
             catch (Exception ex)
             {
@@ -238,9 +248,12 @@ namespace whisperer
         long getfreegpumem()
         {
             var result = 0f;
+            Debug.WriteLine("Calculating free VRAM...");
             gpuCountersDedicated.ForEach(x =>
             {
-                result += x.NextValue();
+                float value = x.NextValue();
+                Debug.WriteLine($"  {x.CounterName}: {value}");
+                result += value;
             });
             return Convert.ToInt64(totmem - result);
         }
