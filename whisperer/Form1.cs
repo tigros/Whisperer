@@ -102,9 +102,9 @@ namespace whisperer
 
             loadsettings();
 
-            checkBox4.CheckedChanged += outputtype_CheckedChanged;
-            checkBox5.CheckedChanged += outputtype_CheckedChanged;
-            checkBox6.CheckedChanged += outputtype_CheckedChanged;
+            srtCheckBox.CheckedChanged += outputtype_CheckedChanged;
+            txtCheckBox.CheckedChanged += outputtype_CheckedChanged;
+            vttCheckBox.CheckedChanged += outputtype_CheckedChanged;
 
             if (totmem == 0)
             {
@@ -146,9 +146,9 @@ namespace whisperer
             textBox1.Text = readreg("outputdir", textBox1.Text);
             modelPathTextBox.Text = readreg("modelpath", modelPathTextBox.Text);
             comboBox1.Text = toproper(readreg("language", "English"));
-            checkBox4.Checked = Convert.ToBoolean(readreg("srt", "True"));
-            checkBox5.Checked = Convert.ToBoolean(readreg("txt", "False"));
-            checkBox6.Checked = Convert.ToBoolean(readreg("vtt", "False"));
+            srtCheckBox.Checked = Convert.ToBoolean(readreg("srt", "True"));
+            txtCheckBox.Checked = Convert.ToBoolean(readreg("txt", "False"));
+            vttCheckBox.Checked = Convert.ToBoolean(readreg("vtt", "False"));
             numericUpDown1.Value = Convert.ToDecimal(readreg("maxatonce", "10"));
             comboBox2.Text = readreg("whendone", "Do nothing");
             checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
@@ -173,7 +173,7 @@ namespace whisperer
         void outputtype_CheckedChanged(object sender, EventArgs e)
         {
             CheckBox clickedCheckBox = sender as CheckBox;
-            if (!clickedCheckBox.Checked && !checkBox4.Checked && !checkBox5.Checked && !checkBox6.Checked)
+            if (!clickedCheckBox.Checked && !srtCheckBox.Checked && !txtCheckBox.Checked && !vttCheckBox.Checked)
             {
                 clickedCheckBox.CheckedChanged -= outputtype_CheckedChanged;
                 clickedCheckBox.Checked = true;
@@ -336,11 +336,11 @@ namespace whisperer
                 filename = filename.Remove(filename.LastIndexOf('.'));
 
             bool res = true;
-            if (checkBox4.Checked)
+            if (srtCheckBox.Checked)
                 res = File.Exists(filename + ".srt");
-            if (checkBox5.Checked)
+            if (txtCheckBox.Checked)
                 res &= File.Exists(filename + ".txt");
-            if (checkBox6.Checked)
+            if (vttCheckBox.Checked)
                 res &= File.Exists(filename + ".vtt");
             return res;
         }
@@ -440,11 +440,11 @@ namespace whisperer
                     proc.StartInfo.FileName = "main.exe";
 
                     string outtypes = "";
-                    if (checkBox4.Checked)
+                    if (srtCheckBox.Checked)
                         outtypes = "--output-srt ";
-                    if (checkBox5.Checked)
+                    if (txtCheckBox.Checked)
                         outtypes += "--output-txt ";
-                    if (checkBox6.Checked)
+                    if (vttCheckBox.Checked)
                         outtypes += "--output-vtt ";
 
                     string prompt = " ";
@@ -868,9 +868,9 @@ namespace whisperer
             writereg("modelpath", modelPathTextBox.Text);
             writereg("outputdir", textBox1.Text);
             writereg("language", comboBox1.Text);
-            writereg("srt", checkBox4.Checked.ToString());
-            writereg("txt", checkBox5.Checked.ToString());
-            writereg("vtt", checkBox6.Checked.ToString());
+            writereg("srt", srtCheckBox.Checked.ToString());
+            writereg("txt", txtCheckBox.Checked.ToString());
+            writereg("vtt", vttCheckBox.Checked.ToString());
             writereg("maxatonce", numericUpDown1.Value.ToString());
             writereg("whendone", comboBox2.Text);
             writereg("sameasinputfolder", checkBox3.Checked.ToString());
