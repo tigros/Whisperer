@@ -121,7 +121,7 @@ namespace whisperer
             try
             {
                 string productName = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "");
-                return productName.Contains("Windows 1") || productName.Contains("Windows 2") || productName.Contains("Windows 3"); 
+                return productName.Contains("Windows 1") || productName.Contains("Windows 2") || productName.Contains("Windows 3");
             }
             catch { }
 
@@ -434,6 +434,7 @@ namespace whisperer
                     while (Process.GetProcessesByName("main").Length >= numericUpDown1.Value && !cancel)
                         Thread.Sleep(1000);
                     Process proc = new Process();
+                    string errorOutput = "";
                     string translate = " ";
                     if (checkBox2.Checked)
                         translate = " -tr ";
@@ -455,10 +456,20 @@ namespace whisperer
                         glbmodel + "\"" + prompt + "\"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
+                    proc.StartInfo.RedirectStandardError = true;
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            Debug.WriteLine(e.Data);
+                            errorOutput += e.Data;
+                            errorOutput += "\n";
+                        }
+                    };
 
                     if (outputexists(filename))
                     {
-                        whisper_Exited(proc, null);
+                        whisper_Exited(proc, null, null);
                         return;
                     }
                     if (!File.Exists(filename))
@@ -482,8 +493,11 @@ namespace whisperer
 
                     int wlen = Process.GetProcessesByName("main").Length;
                     proc.EnableRaisingEvents = true;
-                    proc.Exited += whisper_Exited;
+                    proc.Exited += (sender, e) => { whisper_Exited(sender, e, errorOutput); };
+
+                    Debug.WriteLine($"Starting main.exe. Arguments: {proc.StartInfo.Arguments}");
                     proc.Start();
+                    proc.BeginErrorReadLine();
 
                     while (Process.GetProcessesByName("main").Length == wlen)
                         Thread.Sleep(10);
@@ -533,13 +547,15 @@ namespace whisperer
             return filename.Substring(filename.LastIndexOf('"') + 1);
         }
 
-        void whisper_Exited(object sender, EventArgs e)
+        void whisper_Exited(object sender, EventArgs e, string errorOutput)
         {
             try
             {
                 var proc = sender as Process;
                 if (proc.ExitCode != 0)
-                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}");
+                {
+                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
+                }
 
                 string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
@@ -672,7 +688,7 @@ namespace whisperer
             ".IT", ".KAR", ".M4A", ".M4B", ".M4P", ".M4R", ".M5P", ".MID", ".MKA", ".MLP", ".MOD", ".MPA", ".MP1", ".MP2",
             ".MP3", ".MPC", ".MPGA", ".MUS", ".OGA", ".OGG", ".OMA", ".OPUS", ".QCP", ".RA", ".RMI", ".S3M", ".SID",
             ".SPX", ".TAK", ".THD", ".TTA", ".VOC", ".VOX", ".VQF", ".W64", ".WAV", ".WMA", ".WV", ".XA", ".XM" };
-       
+
         readonly string[] videoext = {".3G2", ".3GP", ".3GP2", ".3GPP", ".AMV", ".ASF", ".AVI", ".BIK", ".BIN", ".CRF",
             ".DIVX", ".DRC", ".DV", ".DVR-MS", ".EVO", ".F4V", ".FLV", ".GVI", ".GXF", ".ISO", ".M1V", ".M2V",
             ".M2T", ".M2TS", ".M4V", ".MKV", ".MOV", ".MP2", ".MP2V", ".MP4", ".MP4V", ".MPE", ".MPEG", ".MPEG1",
