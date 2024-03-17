@@ -35,15 +35,15 @@
             this.fastObjectListView1 = new BrightIdeasSoftware.FastObjectListView();
             this.olvColumn1 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             this.button2 = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
+            this.goButton = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.skipIfExistCheckBox = new System.Windows.Forms.CheckBox();
+            this.modelPathTextBox = new System.Windows.Forms.TextBox();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label6 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
@@ -52,9 +52,9 @@
             this.checkBox3 = new System.Windows.Forms.CheckBox();
             this.label8 = new System.Windows.Forms.Label();
             this.comboBox2 = new System.Windows.Forms.ComboBox();
-            this.checkBox4 = new System.Windows.Forms.CheckBox();
-            this.checkBox5 = new System.Windows.Forms.CheckBox();
-            this.checkBox6 = new System.Windows.Forms.CheckBox();
+            this.srtCheckBox = new System.Windows.Forms.CheckBox();
+            this.txtCheckBox = new System.Windows.Forms.CheckBox();
+            this.vttCheckBox = new System.Windows.Forms.CheckBox();
             this.openFileDialog2 = new System.Windows.Forms.OpenFileDialog();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.button4 = new System.Windows.Forms.Button();
@@ -143,16 +143,16 @@
             // 
             // button3
             // 
-            this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.button3.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.button3.Location = new System.Drawing.Point(213, 454);
-            this.button3.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(101, 25);
-            this.button3.TabIndex = 32;
-            this.button3.Text = "Go";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
+            this.goButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.goButton.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.goButton.Location = new System.Drawing.Point(213, 454);
+            this.goButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.goButton.Name = "button3";
+            this.goButton.Size = new System.Drawing.Size(101, 25);
+            this.goButton.TabIndex = 32;
+            this.goButton.Text = "Go";
+            this.goButton.UseVisualStyleBackColor = true;
+            this.goButton.Click += new System.EventHandler(this.button3_Click);
             // 
             // label1
             // 
@@ -222,29 +222,29 @@
             // 
             // checkBox1
             // 
-            this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Checked = true;
-            this.checkBox1.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox1.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.checkBox1.Location = new System.Drawing.Point(619, 475);
-            this.checkBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(137, 21);
-            this.checkBox1.TabIndex = 40;
-            this.checkBox1.Text = "Skip if output exists";
-            this.checkBox1.UseVisualStyleBackColor = true;
+            this.skipIfExistCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.skipIfExistCheckBox.AutoSize = true;
+            this.skipIfExistCheckBox.Checked = true;
+            this.skipIfExistCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.skipIfExistCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.skipIfExistCheckBox.Location = new System.Drawing.Point(619, 475);
+            this.skipIfExistCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.skipIfExistCheckBox.Name = "checkBox1";
+            this.skipIfExistCheckBox.Size = new System.Drawing.Size(137, 21);
+            this.skipIfExistCheckBox.TabIndex = 40;
+            this.skipIfExistCheckBox.Text = "Skip if output exists";
+            this.skipIfExistCheckBox.UseVisualStyleBackColor = true;
             // 
             // textBox2
             // 
-            this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.textBox2.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox2.Location = new System.Drawing.Point(299, 421);
-            this.textBox2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(188, 23);
-            this.textBox2.TabIndex = 41;
-            this.textBox2.Text = "P:\\Models\\ggml-base.bin";
+            this.modelPathTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.modelPathTextBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.modelPathTextBox.Location = new System.Drawing.Point(299, 421);
+            this.modelPathTextBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.modelPathTextBox.Name = "textBox2";
+            this.modelPathTextBox.Size = new System.Drawing.Size(188, 23);
+            this.modelPathTextBox.TabIndex = 41;
+            this.modelPathTextBox.Text = "P:\\Models\\ggml-base.bin";
             // 
             // checkBox2
             // 
@@ -361,44 +361,44 @@
             // 
             // checkBox4
             // 
-            this.checkBox4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox4.AutoSize = true;
-            this.checkBox4.Checked = true;
-            this.checkBox4.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox4.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.checkBox4.Location = new System.Drawing.Point(153, 422);
-            this.checkBox4.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox4.Name = "checkBox4";
-            this.checkBox4.Size = new System.Drawing.Size(45, 21);
-            this.checkBox4.TabIndex = 50;
-            this.checkBox4.Text = "srt";
-            this.checkBox4.UseVisualStyleBackColor = true;
+            this.srtCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.srtCheckBox.AutoSize = true;
+            this.srtCheckBox.Checked = true;
+            this.srtCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.srtCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.srtCheckBox.Location = new System.Drawing.Point(153, 422);
+            this.srtCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.srtCheckBox.Name = "checkBox4";
+            this.srtCheckBox.Size = new System.Drawing.Size(45, 21);
+            this.srtCheckBox.TabIndex = 50;
+            this.srtCheckBox.Text = "srt";
+            this.srtCheckBox.UseVisualStyleBackColor = true;
             // 
             // checkBox5
             // 
-            this.checkBox5.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox5.AutoSize = true;
-            this.checkBox5.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.checkBox5.Location = new System.Drawing.Point(153, 445);
-            this.checkBox5.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox5.Name = "checkBox5";
-            this.checkBox5.Size = new System.Drawing.Size(46, 21);
-            this.checkBox5.TabIndex = 51;
-            this.checkBox5.Text = "txt";
-            this.checkBox5.UseVisualStyleBackColor = true;
+            this.txtCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.txtCheckBox.AutoSize = true;
+            this.txtCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtCheckBox.Location = new System.Drawing.Point(153, 445);
+            this.txtCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.txtCheckBox.Name = "checkBox5";
+            this.txtCheckBox.Size = new System.Drawing.Size(46, 21);
+            this.txtCheckBox.TabIndex = 51;
+            this.txtCheckBox.Text = "txt";
+            this.txtCheckBox.UseVisualStyleBackColor = true;
             // 
             // checkBox6
             // 
-            this.checkBox6.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.checkBox6.AutoSize = true;
-            this.checkBox6.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.checkBox6.Location = new System.Drawing.Point(153, 467);
-            this.checkBox6.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.checkBox6.Name = "checkBox6";
-            this.checkBox6.Size = new System.Drawing.Size(45, 21);
-            this.checkBox6.TabIndex = 52;
-            this.checkBox6.Text = "vtt";
-            this.checkBox6.UseVisualStyleBackColor = true;
+            this.vttCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.vttCheckBox.AutoSize = true;
+            this.vttCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.vttCheckBox.Location = new System.Drawing.Point(153, 467);
+            this.vttCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.vttCheckBox.Name = "checkBox6";
+            this.vttCheckBox.Size = new System.Drawing.Size(45, 21);
+            this.vttCheckBox.TabIndex = 52;
+            this.vttCheckBox.Text = "vtt";
+            this.vttCheckBox.UseVisualStyleBackColor = true;
             // 
             // openFileDialog2
             // 
@@ -546,9 +546,9 @@
             this.Controls.Add(this.label9);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
-            this.Controls.Add(this.checkBox6);
-            this.Controls.Add(this.checkBox5);
-            this.Controls.Add(this.checkBox4);
+            this.Controls.Add(this.vttCheckBox);
+            this.Controls.Add(this.txtCheckBox);
+            this.Controls.Add(this.srtCheckBox);
             this.Controls.Add(this.comboBox2);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.checkBox3);
@@ -557,15 +557,15 @@
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.checkBox2);
-            this.Controls.Add(this.textBox2);
-            this.Controls.Add(this.checkBox1);
+            this.Controls.Add(this.modelPathTextBox);
+            this.Controls.Add(this.skipIfExistCheckBox);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.button3);
+            this.Controls.Add(this.goButton);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.fastObjectListView1);
             this.Controls.Add(this.button1);
@@ -589,15 +589,15 @@
         private BrightIdeasSoftware.FastObjectListView fastObjectListView1;
         private BrightIdeasSoftware.OLVColumn olvColumn1;
         private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button goButton;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.CheckBox checkBox1;
-        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.CheckBox skipIfExistCheckBox;
+        private System.Windows.Forms.TextBox modelPathTextBox;
         private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ComboBox comboBox1;
@@ -606,9 +606,9 @@
         private System.Windows.Forms.CheckBox checkBox3;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.ComboBox comboBox2;
-        private System.Windows.Forms.CheckBox checkBox4;
-        private System.Windows.Forms.CheckBox checkBox5;
-        private System.Windows.Forms.CheckBox checkBox6;
+        private System.Windows.Forms.CheckBox srtCheckBox;
+        private System.Windows.Forms.CheckBox txtCheckBox;
+        private System.Windows.Forms.CheckBox vttCheckBox;
         private System.Windows.Forms.OpenFileDialog openFileDialog2;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.Button button4;

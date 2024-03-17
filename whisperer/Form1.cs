@@ -69,6 +69,8 @@ namespace whisperer
                 return;
             }
 
+            goButton.Enabled = false;
+
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
@@ -102,9 +104,9 @@ namespace whisperer
 
             loadsettings();
 
-            checkBox4.CheckedChanged += outputtype_CheckedChanged;
-            checkBox5.CheckedChanged += outputtype_CheckedChanged;
-            checkBox6.CheckedChanged += outputtype_CheckedChanged;
+            srtCheckBox.CheckedChanged += outputtype_CheckedChanged;
+            txtCheckBox.CheckedChanged += outputtype_CheckedChanged;
+            vttCheckBox.CheckedChanged += outputtype_CheckedChanged;
 
             if (totmem == 0)
             {
@@ -121,7 +123,7 @@ namespace whisperer
             try
             {
                 string productName = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "ProductName", "");
-                return productName.Contains("Windows 1") || productName.Contains("Windows 2") || productName.Contains("Windows 3"); 
+                return productName.Contains("Windows 1") || productName.Contains("Windows 2") || productName.Contains("Windows 3");
             }
             catch { }
 
@@ -144,15 +146,15 @@ namespace whisperer
         {
             Cursor = Cursors.WaitCursor;
             textBox1.Text = readreg("outputdir", textBox1.Text);
-            textBox2.Text = readreg("modelpath", textBox2.Text);
+            modelPathTextBox.Text = readreg("modelpath", modelPathTextBox.Text);
             comboBox1.Text = toproper(readreg("language", "English"));
-            checkBox4.Checked = Convert.ToBoolean(readreg("srt", "True"));
-            checkBox5.Checked = Convert.ToBoolean(readreg("txt", "False"));
-            checkBox6.Checked = Convert.ToBoolean(readreg("vtt", "False"));
+            srtCheckBox.Checked = Convert.ToBoolean(readreg("srt", "True"));
+            txtCheckBox.Checked = Convert.ToBoolean(readreg("txt", "False"));
+            vttCheckBox.Checked = Convert.ToBoolean(readreg("vtt", "False"));
             numericUpDown1.Value = Convert.ToDecimal(readreg("maxatonce", "10"));
             comboBox2.Text = readreg("whendone", "Do nothing");
             checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
-            checkBox1.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
+            skipIfExistCheckBox.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
             checkBox2.Checked = Convert.ToBoolean(readreg("translate", "False"));
             textBox3.Text = readreg("watchfolders", textBox3.Text);
             textBox4.Text = readreg("prompt", textBox4.Text);
@@ -173,7 +175,7 @@ namespace whisperer
         void outputtype_CheckedChanged(object sender, EventArgs e)
         {
             CheckBox clickedCheckBox = sender as CheckBox;
-            if (!clickedCheckBox.Checked && !checkBox4.Checked && !checkBox5.Checked && !checkBox6.Checked)
+            if (!clickedCheckBox.Checked && !srtCheckBox.Checked && !txtCheckBox.Checked && !vttCheckBox.Checked)
             {
                 clickedCheckBox.CheckedChanged -= outputtype_CheckedChanged;
                 clickedCheckBox.Checked = true;
@@ -216,6 +218,8 @@ namespace whisperer
         {
             try
             {
+                Debug.WriteLine("Initializing GPU counters...");
+
                 var category = new PerformanceCounterCategory("GPU Adapter Memory");
                 var counterNames = category.GetInstanceNames();
                 foreach (string counterName in counterNames)
@@ -223,9 +227,19 @@ namespace whisperer
                     foreach (var counter in category.GetCounters(counterName))
                     {
                         if (counter.CounterName == "Dedicated Usage")
+                        {
+                            Debug.WriteLine($"  {counter.InstanceName}");
                             gpuCountersDedicated.Add(counter);
+                        }
                     }
                 }
+
+                Debug.WriteLine($"GPU counters have been initialized. Counters count: {gpuCountersDedicated.Count}");
+
+                if (gpuCountersDedicated.Count == 0)
+                    ShowError("Failed to initialize GPU performance counters");
+
+                goButton.BeginInvoke((Action)delegate { goButton.Enabled = true; });
             }
             catch (Exception ex)
             {
@@ -237,12 +251,17 @@ namespace whisperer
 
         long getfreegpumem()
         {
-            var result = 0f;
+            var usedMem = 0f;
+            Debug.WriteLine("Calculating free VRAM...");
             gpuCountersDedicated.ForEach(x =>
             {
-                result += x.NextValue();
+                float value = x.NextValue();
+                Debug.WriteLine($"  {x.InstanceName}: {value}");
+                usedMem += value;
             });
-            return Convert.ToInt64(totmem - result);
+            if (totmem < usedMem)
+                throw new Exception($"Failed to calculate free GPU memory. Used memory: {usedMem/1024/1024} MB, Total memory: {totmem/1024/1024} MB");
+            return Convert.ToInt64(totmem - usedMem);
         }
 
         void fillmemvars()
@@ -328,7 +347,7 @@ namespace whisperer
 
         bool outputexists(string filename)
         {
-            if (!checkBox1.Checked && !Program.iswatch)
+            if (!skipIfExistCheckBox.Checked && !Program.iswatch)
                 return false;
             filename = filename.Remove(filename.LastIndexOf('.'));
 
@@ -336,11 +355,11 @@ namespace whisperer
                 filename = filename.Remove(filename.LastIndexOf('.'));
 
             bool res = true;
-            if (checkBox4.Checked)
+            if (srtCheckBox.Checked)
                 res = File.Exists(filename + ".srt");
-            if (checkBox5.Checked)
+            if (txtCheckBox.Checked)
                 res &= File.Exists(filename + ".txt");
-            if (checkBox6.Checked)
+            if (vttCheckBox.Checked)
                 res &= File.Exists(filename + ".vtt");
             return res;
         }
@@ -434,17 +453,18 @@ namespace whisperer
                     while (Process.GetProcessesByName("main").Length >= numericUpDown1.Value && !cancel)
                         Thread.Sleep(1000);
                     Process proc = new Process();
+                    string errorOutput = "";
                     string translate = " ";
                     if (checkBox2.Checked)
                         translate = " -tr ";
                     proc.StartInfo.FileName = "main.exe";
 
                     string outtypes = "";
-                    if (checkBox4.Checked)
+                    if (srtCheckBox.Checked)
                         outtypes = "--output-srt ";
-                    if (checkBox5.Checked)
+                    if (txtCheckBox.Checked)
                         outtypes += "--output-txt ";
-                    if (checkBox6.Checked)
+                    if (vttCheckBox.Checked)
                         outtypes += "--output-vtt ";
 
                     string prompt = " ";
@@ -455,10 +475,20 @@ namespace whisperer
                         glbmodel + "\"" + prompt + "\"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
+                    proc.StartInfo.RedirectStandardError = true;
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            Debug.WriteLine(e.Data);
+                            errorOutput += e.Data;
+                            errorOutput += "\n";
+                        }
+                    };
 
                     if (outputexists(filename))
                     {
-                        whisper_Exited(proc, null);
+                        whisper_Exited(proc, null, null);
                         return;
                     }
                     if (!File.Exists(filename))
@@ -482,8 +512,11 @@ namespace whisperer
 
                     int wlen = Process.GetProcessesByName("main").Length;
                     proc.EnableRaisingEvents = true;
-                    proc.Exited += whisper_Exited;
+                    proc.Exited += (sender, e) => { whisper_Exited(sender, e, errorOutput); };
+
+                    Debug.WriteLine($"Starting main.exe. Arguments: {proc.StartInfo.Arguments}");
                     proc.Start();
+                    proc.BeginErrorReadLine();
 
                     while (Process.GetProcessesByName("main").Length == wlen)
                         Thread.Sleep(10);
@@ -533,10 +566,16 @@ namespace whisperer
             return filename.Substring(filename.LastIndexOf('"') + 1);
         }
 
-        void whisper_Exited(object sender, EventArgs e)
+        void whisper_Exited(object sender, EventArgs e, string errorOutput)
         {
             try
             {
+                var proc = sender as Process;
+                if (proc.ExitCode != 0)
+                {
+                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
+                }
+
                 string filename = getfilename((Process)sender);
                 if (File.Exists(filename))
                     File.Delete(filename);
@@ -668,7 +707,7 @@ namespace whisperer
             ".IT", ".KAR", ".M4A", ".M4B", ".M4P", ".M4R", ".M5P", ".MID", ".MKA", ".MLP", ".MOD", ".MPA", ".MP1", ".MP2",
             ".MP3", ".MPC", ".MPGA", ".MUS", ".OGA", ".OGG", ".OMA", ".OPUS", ".QCP", ".RA", ".RMI", ".S3M", ".SID",
             ".SPX", ".TAK", ".THD", ".TTA", ".VOC", ".VOX", ".VQF", ".W64", ".WAV", ".WMA", ".WV", ".XA", ".XM" };
-       
+
         readonly string[] videoext = {".3G2", ".3GP", ".3GP2", ".3GPP", ".AMV", ".ASF", ".AVI", ".BIK", ".BIN", ".CRF",
             ".DIVX", ".DRC", ".DV", ".DVR-MS", ".EVO", ".F4V", ".FLV", ".GVI", ".GXF", ".ISO", ".M1V", ".M2V",
             ".M2T", ".M2TS", ".M4V", ".MKV", ".MOV", ".MP2", ".MP2V", ".MP4", ".MP4V", ".MPE", ".MPEG", ".MPEG1",
@@ -701,7 +740,7 @@ namespace whisperer
         {
             try
             {
-                if (button3.Text == "Go")
+                if (goButton.Text == "Go")
                 {
                     if (fastObjectListView1.SelectedObjects.Count == 0 && textBox3.Text.Trim() == "")
                     {
@@ -713,7 +752,7 @@ namespace whisperer
                     if (!checkdir())
                         return;
                     glbarray.Clear();
-                    glbmodel = textBox2.Text;
+                    glbmodel = modelPathTextBox.Text;
                     if (!File.Exists(glbmodel))
                     {
                         ShowError(glbmodel + " not found!");
@@ -752,7 +791,7 @@ namespace whisperer
                         foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                             glbarray.Add(filename.filename);
                     cancel = false;
-                    button3.Text = "Cancel";
+                    goButton.Text = "Cancel";
                     completed = 0;
                     label5.Text = "0";
                     glbsamefolder = checkBox3.Checked;
@@ -776,7 +815,7 @@ namespace whisperer
                         quitq = true;
                         Invoke(new Action(() =>
                         {
-                            button3.Text = "Go";
+                            goButton.Text = "Go";
                             timer1.Enabled = false;
                             whendone();
                         }));
@@ -840,7 +879,7 @@ namespace whisperer
         void button4_Click(object sender, EventArgs e)
         {
             if (openFileDialog2.ShowDialog() == DialogResult.OK)
-                textBox2.Text = openFileDialog2.FileName;
+                modelPathTextBox.Text = openFileDialog2.FileName;
         }
 
         void button5_Click(object sender, EventArgs e)
@@ -865,16 +904,16 @@ namespace whisperer
 
         void savesettings()
         {
-            writereg("modelpath", textBox2.Text);
+            writereg("modelpath", modelPathTextBox.Text);
             writereg("outputdir", textBox1.Text);
             writereg("language", comboBox1.Text);
-            writereg("srt", checkBox4.Checked.ToString());
-            writereg("txt", checkBox5.Checked.ToString());
-            writereg("vtt", checkBox6.Checked.ToString());
+            writereg("srt", srtCheckBox.Checked.ToString());
+            writereg("txt", txtCheckBox.Checked.ToString());
+            writereg("vtt", vttCheckBox.Checked.ToString());
             writereg("maxatonce", numericUpDown1.Value.ToString());
             writereg("whendone", comboBox2.Text);
             writereg("sameasinputfolder", checkBox3.Checked.ToString());
-            writereg("skipifexists", checkBox1.Checked.ToString());
+            writereg("skipifexists", skipIfExistCheckBox.Checked.ToString());
             writereg("translate", checkBox2.Checked.ToString());
             writereg("watchfolders", textBox3.Text);
             writereg("prompt", textBox4.Text);
@@ -910,7 +949,7 @@ namespace whisperer
                 using (var stream = new NamedPipeServerStream("whispererwatchpipe", PipeDirection.InOut))
                     stream.WaitForConnection();
 
-                if (button3.Text == "Go")
+                if (goButton.Text == "Go")
                 {
                     Program.iswatch = true;
                     Invoke(new Action(() =>
