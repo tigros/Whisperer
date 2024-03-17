@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28307.1525
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "whisperer", "whisperer\whisperer.csproj", "{1FCB32CA-014B-4C4D-9B61-D8592F3C98B8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0C26F83B-359F-4A65-ACD8-55F4757E0A9B} = {0C26F83B-359F-4A65-ACD8-55F4757E0A9B}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPUmembyproc", "GPUmembyproc\GPUmembyproc.vcxproj", "{0C26F83B-359F-4A65-ACD8-55F4757E0A9B}"
 EndProject
