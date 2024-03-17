@@ -234,7 +234,11 @@ namespace whisperer
                     }
                 }
 
-                Debug.WriteLine("GPU counters have been initialized");
+                Debug.WriteLine($"GPU counters have been initialized. Counters count: {gpuCountersDedicated.Count}");
+
+                if (gpuCountersDedicated.Count == 0)
+                    ShowError("Failed to initialize GPU performance counters");
+
                 goButton.BeginInvoke((Action)delegate { goButton.Enabled = true; });
             }
             catch (Exception ex)
@@ -247,15 +251,17 @@ namespace whisperer
 
         long getfreegpumem()
         {
-            var result = 0f;
+            var usedMem = 0f;
             Debug.WriteLine("Calculating free VRAM...");
             gpuCountersDedicated.ForEach(x =>
             {
                 float value = x.NextValue();
-                Debug.WriteLine($"  {x.CounterName}: {value}");
-                result += value;
+                Debug.WriteLine($"  {x.InstanceName}: {value}");
+                usedMem += value;
             });
-            return Convert.ToInt64(totmem - result);
+            if (totmem < usedMem)
+                throw new Exception($"Failed to calculate free GPU memory. Used memory: {usedMem/1024/1024} MB, Total memory: {totmem/1024/1024} MB");
+            return Convert.ToInt64(totmem - usedMem);
         }
 
         void fillmemvars()
