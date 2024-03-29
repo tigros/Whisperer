@@ -747,6 +747,8 @@ namespace whisperer
                 Program.iswatch = true;
                 glbarray.Clear();
                 loadwatchfilelist();
+                getdurations();
+                tottime = gettottime();
                 processarray();
                 if (glbarray.Count > 0)
                     waitilldone();
