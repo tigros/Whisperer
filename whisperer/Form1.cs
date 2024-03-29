@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using BrightIdeasSoftware;
+using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -34,6 +35,8 @@ namespace whisperer
         static ScheduledTasks schedtask = null;
         static TaskScheduler.Task tasksched = null;
         long largereq = 0;
+        Dictionary<string, durationrec> durations = new Dictionary<string, durationrec>();
+        TimeSpan tottime;
 
         public Form1()
         {
@@ -74,7 +77,7 @@ namespace whisperer
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
-
+            
             Thread watchthr = new Thread(watchwait);
             watchthr.IsBackground = true;
             watchthr.Start();
@@ -383,6 +386,13 @@ namespace whisperer
                 proc.StartInfo.Arguments = "-y -i \"" + filename + "\" -vn -ar 16000 -ac 1 -ab 32k -af volume=1.75 -f wav \"" + outname + "\"";
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = true;
+                proc.StartInfo.Domain = filename;
+                try
+                {
+                    durationrec dr = durations[filename];
+                    dr.starttime = DateTime.Now;
+                }
+                catch { }
 
                 if (File.Exists(outname) || outputexists(outname))
                 {
@@ -403,7 +413,7 @@ namespace whisperer
 
         void ffmpeg_Exited(object sender, EventArgs e)
         {
-            qwhisper(getfilename((Process)sender));
+            qwhisper((Process)sender);
         }
 
         string getfolder(string filename)
@@ -444,8 +454,10 @@ namespace whisperer
             }
         }
 
-        void qwhisper(string filename)
+        void qwhisper(Process p)
         {
+            string filename = getfilename(p);
+
             whisperq.Enqueue(new Action(() =>
             {
                 try
@@ -458,6 +470,7 @@ namespace whisperer
                     if (checkBox2.Checked)
                         translate = " -tr ";
                     proc.StartInfo.FileName = "main.exe";
+                    proc.StartInfo.Domain = p.StartInfo.Domain;
 
                     string outtypes = "";
                     if (srtCheckBox.Checked)
@@ -531,6 +544,37 @@ namespace whisperer
             }));
         }
 
+        int Execute(string path)
+        {
+            string dir = "";
+            try
+            {
+                dir = Path.GetDirectoryName(path);
+            }
+            catch { }
+            try
+            {
+                IntPtr result = ShellExecute(0, "", path, "", dir, SW_SHOWNORMAL);
+                return result.ToInt32();
+            }
+            catch { }
+            return 0;
+        }
+
+        private void fastObjectListView1_CellClick(object sender, BrightIdeasSoftware.CellClickEventArgs e)
+        {
+            try
+            {
+                if (e.ClickCount == 2 && e.HitTest.HitTestLocation == HitTestLocation.Text)
+                {
+                    filenameline f = (filenameline)fastObjectListView1.SelectedObject;
+                    if (File.Exists(f.filename))
+                        Execute(f.filename);
+                }
+            }
+            catch { }
+        }
+
         void tryrename(string filename, string ext)
         {
             try
@@ -566,21 +610,62 @@ namespace whisperer
             return filename.Substring(filename.LastIndexOf('"') + 1);
         }
 
+        int maxmains = 0;
+        void updatetimeremaining()
+        {
+            TimeSpan exectime = new TimeSpan();
+            TimeSpan duration = new TimeSpan();
+
+            foreach (KeyValuePair<string, durationrec> r in durations)
+            {
+                if (r.Value.exectime != TimeSpan.Zero)
+                {
+                    exectime += r.Value.exectime;
+                    duration += r.Value.duration;
+                }
+            }
+
+            if (exectime <= TimeSpan.Zero || duration <= TimeSpan.Zero)
+                return;
+
+            int mains = Process.GetProcessesByName("main").Length;
+            if (mains > maxmains)
+                maxmains = mains;
+            TimeSpan timetodo = tottime - duration;
+            double timepersec = exectime.TotalSeconds / duration.TotalSeconds / (maxmains + 1);
+            int todo = (int)(timetodo.TotalSeconds * timepersec);
+            TimeSpan ttodo = new TimeSpan(0, 0, todo);
+            Invoke(new Action(() =>
+            {
+                timeremaining.Text = ttodo.ToString();
+            }));
+        }
+
         void whisper_Exited(object sender, EventArgs e, string errorOutput)
         {
             try
             {
                 var proc = sender as Process;
-                if (proc.ExitCode != 0)
+                try
                 {
-                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
+                    if (proc.ExitCode != 0)
+                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
                 }
+                catch { }
 
-                string filename = getfilename((Process)sender);
+                try
+                {
+                    durationrec dr = durations[proc.StartInfo.Domain];
+                    dr.exectime = DateTime.Now - dr.starttime;
+                }
+                catch { }
+
+                string filename = getfilename(proc);
                 if (File.Exists(filename))
                     File.Delete(filename);
                 completed++;
                 renamewaves(filename);
+                updatetimeremaining();
             }
             catch { }
 
@@ -736,6 +821,79 @@ namespace whisperer
             }
         }
 
+        TimeSpan getduration(string filename)
+        {
+            try
+            {
+                Process proc = new Process();
+                proc.StartInfo.FileName = "ffmpeg.exe";
+                proc.StartInfo.Arguments = "-i \"" + filename + '"';
+                proc.StartInfo.RedirectStandardInput = true;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.CreateNoWindow = true;
+                proc.Start();
+                string output = proc.StandardError.ReadToEnd();
+                proc.WaitForExit();
+
+                int pos = output.IndexOf("Duration:");
+
+                if (pos == -1)
+                    return TimeSpan.Zero;
+
+                pos += 10;
+                int comma = output.IndexOf(',', pos);
+                string s = output.Substring(pos, comma - pos);
+                string[] units = s.Split(new char[] { ':', '.' });
+                return new TimeSpan(Convert.ToInt32(units[0]), Convert.ToInt32(units[1]), Convert.ToInt32(units[2]));
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex.ToString());
+            }
+            return TimeSpan.Zero;
+        }
+
+        void getdurations()
+        {
+            List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
+            durations.Clear();
+            foreach (string filename in glbarray)
+            {
+                string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
+                int i = outname.LastIndexOf('.');
+                if (i == -1)
+                    continue;
+                outname = outname.Remove(i) + ".wav";
+                if (Path.GetExtension(filename).ToLower() == ".wav")
+                    outname += ".wav";
+
+                if (outputexists(outname))
+                    continue;
+
+                System.Threading.Tasks.Task t = System.Threading.Tasks.Task.Factory.StartNew(() =>
+                {
+                    if (cancel)
+                        return;
+                    durationrec r = new durationrec(getduration(filename));
+                    if (r.duration != TimeSpan.Zero)
+                        lock (durations)
+                            durations.Add(filename, r);
+                });
+                tasks.Add(t);
+            }
+            System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+        }
+
+        TimeSpan gettottime()
+        {
+            TimeSpan tot = new TimeSpan();
+            foreach (KeyValuePair<string, durationrec> r in durations)
+                tot += r.Value.duration;
+            return tot;
+        }
+
         void button3_Click(object sender, EventArgs e)
         {
             try
@@ -796,6 +954,7 @@ namespace whisperer
                     label5.Text = "0";
                     glbsamefolder = checkBox3.Checked;
                     glblang = "en";
+                    maxmains = 0;
                     Action act = null;
                     while (whisperq.Count > 0)
                     {
@@ -811,6 +970,8 @@ namespace whisperer
                     catch { }
                     Thread thr = new Thread(() =>
                     {
+                        getdurations();
+                        tottime = gettottime();
                         execwhisper();
                         quitq = true;
                         Invoke(new Action(() =>
@@ -828,6 +989,7 @@ namespace whisperer
                     cq.IsBackground = true;
                     cq.Start();
 
+                    timeremaining.Text = "00:00:00";
                     sw.Restart();
                     timer1.Enabled = true;
                 }
@@ -890,8 +1052,13 @@ namespace whisperer
 
         void timer1_Tick(object sender, EventArgs e)
         {
-            label10.Text = sw.Elapsed.Hours.ToString("0") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" +
+            label10.Text = sw.Elapsed.Hours.ToString("00") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" +
                 sw.Elapsed.Seconds.ToString("00");
+            string[] rems = timeremaining.Text.Split(':');
+            TimeSpan t = new TimeSpan(Convert.ToInt32(rems[0]), Convert.ToInt32(rems[1]), Convert.ToInt32(rems[2]));
+            t -= new TimeSpan(0, 0, 1);
+            if (t >= TimeSpan.Zero)
+                timeremaining.Text = t.ToString();
         }
 
         void savefilelist()
@@ -1149,6 +1316,8 @@ namespace whisperer
             DoTask();
         }
 
+        const int SW_SHOWNORMAL = 1;
+
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
 
@@ -1164,6 +1333,10 @@ namespace whisperer
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr ShellExecute(int hwnd, string lpOperation, string lpFile,
+        string lpParameters, string lpDirectory, int nShowCmd);
     }
 
     public class filenameline
@@ -1175,4 +1348,17 @@ namespace whisperer
             this.filename = filename;
         }
     }
+
+    public class durationrec
+    {
+        public TimeSpan duration;
+        public DateTime starttime;
+        public TimeSpan exectime;
+
+        public durationrec(TimeSpan duration)
+        {
+            this.duration = duration;
+        }
+    }
+
 }

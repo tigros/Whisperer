@@ -68,6 +68,8 @@
             this.button7 = new System.Windows.Forms.Button();
             this.textBox4 = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
+            this.timeremaining = new System.Windows.Forms.Label();
+            this.label14 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.fastObjectListView1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.SuspendLayout();
@@ -117,6 +119,7 @@
             this.fastObjectListView1.UseTranslucentSelection = true;
             this.fastObjectListView1.View = System.Windows.Forms.View.Details;
             this.fastObjectListView1.VirtualMode = true;
+            this.fastObjectListView1.CellClick += new System.EventHandler<BrightIdeasSoftware.CellClickEventArgs>(this.fastObjectListView1_CellClick);
             this.fastObjectListView1.SelectionChanged += new System.EventHandler(this.fastObjectListView1_SelectionChanged);
             this.fastObjectListView1.DragDrop += new System.Windows.Forms.DragEventHandler(this.fastObjectListView1_DragDrop);
             this.fastObjectListView1.DragEnter += new System.Windows.Forms.DragEventHandler(this.fastObjectListView1_DragEnter);
@@ -141,13 +144,13 @@
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
-            // button3
+            // goButton
             // 
             this.goButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.goButton.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.goButton.Location = new System.Drawing.Point(213, 454);
             this.goButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.goButton.Name = "button3";
+            this.goButton.Name = "goButton";
             this.goButton.Size = new System.Drawing.Size(101, 25);
             this.goButton.TabIndex = 32;
             this.goButton.Text = "Go";
@@ -220,7 +223,7 @@
             this.label5.TabIndex = 39;
             this.label5.Text = "0";
             // 
-            // checkBox1
+            // skipIfExistCheckBox
             // 
             this.skipIfExistCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.skipIfExistCheckBox.AutoSize = true;
@@ -229,19 +232,19 @@
             this.skipIfExistCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.skipIfExistCheckBox.Location = new System.Drawing.Point(619, 475);
             this.skipIfExistCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.skipIfExistCheckBox.Name = "checkBox1";
+            this.skipIfExistCheckBox.Name = "skipIfExistCheckBox";
             this.skipIfExistCheckBox.Size = new System.Drawing.Size(137, 21);
             this.skipIfExistCheckBox.TabIndex = 40;
             this.skipIfExistCheckBox.Text = "Skip if output exists";
             this.skipIfExistCheckBox.UseVisualStyleBackColor = true;
             // 
-            // textBox2
+            // modelPathTextBox
             // 
             this.modelPathTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.modelPathTextBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.modelPathTextBox.Location = new System.Drawing.Point(299, 421);
             this.modelPathTextBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.modelPathTextBox.Name = "textBox2";
+            this.modelPathTextBox.Name = "modelPathTextBox";
             this.modelPathTextBox.Size = new System.Drawing.Size(188, 23);
             this.modelPathTextBox.TabIndex = 41;
             this.modelPathTextBox.Text = "P:\\Models\\ggml-base.bin";
@@ -359,7 +362,7 @@
             this.comboBox2.Size = new System.Drawing.Size(109, 23);
             this.comboBox2.TabIndex = 49;
             // 
-            // checkBox4
+            // srtCheckBox
             // 
             this.srtCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.srtCheckBox.AutoSize = true;
@@ -368,33 +371,33 @@
             this.srtCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.srtCheckBox.Location = new System.Drawing.Point(153, 422);
             this.srtCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.srtCheckBox.Name = "checkBox4";
+            this.srtCheckBox.Name = "srtCheckBox";
             this.srtCheckBox.Size = new System.Drawing.Size(45, 21);
             this.srtCheckBox.TabIndex = 50;
             this.srtCheckBox.Text = "srt";
             this.srtCheckBox.UseVisualStyleBackColor = true;
             // 
-            // checkBox5
+            // txtCheckBox
             // 
             this.txtCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.txtCheckBox.AutoSize = true;
             this.txtCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCheckBox.Location = new System.Drawing.Point(153, 445);
             this.txtCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.txtCheckBox.Name = "checkBox5";
+            this.txtCheckBox.Name = "txtCheckBox";
             this.txtCheckBox.Size = new System.Drawing.Size(46, 21);
             this.txtCheckBox.TabIndex = 51;
             this.txtCheckBox.Text = "txt";
             this.txtCheckBox.UseVisualStyleBackColor = true;
             // 
-            // checkBox6
+            // vttCheckBox
             // 
             this.vttCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.vttCheckBox.AutoSize = true;
             this.vttCheckBox.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.vttCheckBox.Location = new System.Drawing.Point(153, 467);
             this.vttCheckBox.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.vttCheckBox.Name = "checkBox6";
+            this.vttCheckBox.Name = "vttCheckBox";
             this.vttCheckBox.Size = new System.Drawing.Size(45, 21);
             this.vttCheckBox.TabIndex = 52;
             this.vttCheckBox.Text = "vtt";
@@ -452,9 +455,9 @@
             this.label10.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label10.Location = new System.Drawing.Point(912, 479);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(51, 17);
+            this.label10.Size = new System.Drawing.Size(58, 17);
             this.label10.TabIndex = 56;
-            this.label10.Text = "0:00:00";
+            this.label10.Text = "00:00:00";
             // 
             // timer1
             // 
@@ -531,11 +534,35 @@
             this.label12.TabIndex = 61;
             this.label12.Text = "Initial prompt:";
             // 
+            // timeremaining
+            // 
+            this.timeremaining.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.timeremaining.AutoSize = true;
+            this.timeremaining.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.timeremaining.Location = new System.Drawing.Point(912, 501);
+            this.timeremaining.Name = "timeremaining";
+            this.timeremaining.Size = new System.Drawing.Size(58, 17);
+            this.timeremaining.TabIndex = 64;
+            this.timeremaining.Text = "00:00:00";
+            // 
+            // label14
+            // 
+            this.label14.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.label14.AutoSize = true;
+            this.label14.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label14.Location = new System.Drawing.Point(833, 501);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(72, 17);
+            this.label14.TabIndex = 63;
+            this.label14.Text = "Remaining:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1233, 534);
+            this.Controls.Add(this.timeremaining);
+            this.Controls.Add(this.label14);
             this.Controls.Add(this.textBox4);
             this.Controls.Add(this.label12);
             this.Controls.Add(this.button7);
@@ -622,6 +649,8 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.TextBox textBox4;
         private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Label timeremaining;
+        private System.Windows.Forms.Label label14;
     }
 }
 
