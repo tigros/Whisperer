@@ -648,15 +648,14 @@ namespace whisperer
                 var proc = sender as Process;
                 try
                 {
-                    if (proc.ExitCode != 0)
-                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
-                }
-                catch { }
-
-                try
-                {
                     durationrec dr = durations[proc.StartInfo.Domain];
                     dr.exectime = DateTime.Now - dr.starttime;
+                }
+                catch { }
+                try
+                {
+                    if (proc.ExitCode != 0)
+                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
                 }
                 catch { }
 
@@ -852,7 +851,11 @@ namespace whisperer
             }
             catch (Exception ex)
             {
-                ShowError(ex.ToString());
+                if (!cancel)
+                {
+                    cancel = true;
+                    ShowError(ex.ToString());
+                }
             }
             return TimeSpan.Zero;
         }
@@ -991,7 +994,7 @@ namespace whisperer
                     cq.IsBackground = true;
                     cq.Start();
 
-                    timeremaining.Text = "00:00:00";
+                    timeremaining.Text = "--:--:--";
                     sw.Restart();
                     timer1.Enabled = true;
                 }
@@ -1056,6 +1059,8 @@ namespace whisperer
         {
             label10.Text = sw.Elapsed.Hours.ToString("00") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" +
                 sw.Elapsed.Seconds.ToString("00");
+            if (timeremaining.Text[0] == '-')
+                return;
             string[] rems = timeremaining.Text.Split(':');
             TimeSpan t = new TimeSpan(Convert.ToInt32(rems[0]), Convert.ToInt32(rems[1]), Convert.ToInt32(rems[2]));
             t -= new TimeSpan(0, 0, 1);
