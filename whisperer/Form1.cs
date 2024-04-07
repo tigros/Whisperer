@@ -72,8 +72,6 @@ namespace whisperer
                 return;
             }
 
-            goButton.Enabled = false;
-
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
@@ -367,6 +365,18 @@ namespace whisperer
             return res;
         }
 
+        string wavname(string filename)
+        {
+            string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
+            int i = outname.LastIndexOf('.');
+            if (i == -1)
+                return "";
+            outname = outname.Remove(i) + ".wav";
+            if (Path.GetExtension(filename).ToLower() == ".wav")
+                outname += ".wav";
+            return outname;
+        }
+
         void convertandwhisper(string filename)
         {
             try
@@ -374,13 +384,9 @@ namespace whisperer
                 while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
                     whisperq.Count >= numericUpDown1.Value) && !cancel)
                     Thread.Sleep(100);
-                string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
-                int i = outname.LastIndexOf('.');
-                if (i == -1 || cancel)
+                string outname = wavname(filename);
+                if (outname == "" || cancel)
                     return;
-                outname = outname.Remove(i) + ".wav";
-                if (Path.GetExtension(filename).ToLower() == ".wav")
-                    outname += ".wav";
                 Process proc = new Process();
                 proc.StartInfo.FileName = "ffmpeg.exe";
                 proc.StartInfo.Arguments = "-y -i \"" + filename + "\" -vn -ar 16000 -ac 1 -ab 32k -af volume=1.75 -f wav \"" + outname + "\"";
@@ -561,16 +567,19 @@ namespace whisperer
             return 0;
         }
 
+        void openinplayer(object o)
+        {
+            filenameline f = (filenameline)o;
+            if (File.Exists(f.filename))
+                Execute(f.filename);
+        }
+
         private void fastObjectListView1_CellClick(object sender, BrightIdeasSoftware.CellClickEventArgs e)
         {
             try
             {
                 if (e.ClickCount == 2 && e.HitTest.HitTestLocation == HitTestLocation.Text)
-                {
-                    filenameline f = (filenameline)fastObjectListView1.SelectedObject;
-                    if (File.Exists(f.filename))
-                        Execute(f.filename);
-                }
+                    openinplayer(fastObjectListView1.SelectedObject);
             }
             catch { }
         }
@@ -866,15 +875,9 @@ namespace whisperer
             durations.Clear();
             foreach (string filename in glbarray)
             {
-                string outname = Path.Combine(getfolder(filename), Path.GetFileName(filename));
-                int i = outname.LastIndexOf('.');
-                if (i == -1)
-                    continue;
-                outname = outname.Remove(i) + ".wav";
-                if (Path.GetExtension(filename).ToLower() == ".wav")
-                    outname += ".wav";
+                string outname = wavname(filename);
 
-                if (outputexists(outname))
+                if (outname == "" || outputexists(outname))
                     continue;
 
                 System.Threading.Tasks.Task t = System.Threading.Tasks.Task.Factory.StartNew(() =>
@@ -1167,7 +1170,7 @@ namespace whisperer
             return '"' + Path.Combine(rootdir, "qlaunch.exe") + '"';
         }
 
-        void loosets()
+        void losets()
         {
             try
             {
@@ -1217,7 +1220,7 @@ namespace whisperer
             bool had1 = false;
             if (schedtask == null)
                 schedtask = new ScheduledTasks();
-            loosets();
+            losets();
             tasksched = schedtask.OpenTask("Whisperer");
             if (tasksched == null)
                 CreateTask("Whisperer");
@@ -1315,12 +1318,58 @@ namespace whisperer
                 ShowError(ex.ToString());
             }
 
-            loosets();
+            losets();
         }
 
         void button7_Click(object sender, EventArgs e)
         {
             DoTask();
+        }
+
+        private void fastObjectListView1_CellRightClick(object sender, CellRightClickEventArgs e)
+        {
+            filenameline f = e.Model as filenameline;
+            if (f != null)
+            {
+                contextMenuStrip1.Tag = f;
+                e.MenuStrip = this.contextMenuStrip1;
+            }
+        }
+
+        private void toolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            openinplayer(contextMenuStrip1.Tag);
+        }
+
+        private void openinexplorer(object o)
+        {
+            filenameline f = (filenameline)o;
+            string path = f.filename;
+            if (!File.Exists(path))
+            {
+                string folder = Path.GetDirectoryName(path);
+                if (Directory.Exists(folder))
+                    path = Path.Combine(folder, ".");
+                else
+                    return;
+            }
+            string argument = "/select, \"" + path + "\"";
+            Process.Start("explorer.exe", argument);
+        }
+
+        private void toolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            openinexplorer(contextMenuStrip1.Tag);
+        }
+
+        private void toolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            fastObjectListView1.RemoveObject(contextMenuStrip1.Tag);
+        }
+
+        private void toolStripMenuItem4_Click(object sender, EventArgs e)
+        {
+            fastObjectListView1.RemoveObjects(fastObjectListView1.SelectedObjects);
         }
 
         const int SW_SHOWNORMAL = 1;
@@ -1333,7 +1382,7 @@ namespace whisperer
 
         [DllImport("user32.dll")]
         public static extern bool ExitWindowsEx(uint uFlags, uint dwReason);
-
+        
         [DllImport("user32.dll")]
         public static extern void LockWorkStation();
 
