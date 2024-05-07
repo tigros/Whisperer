@@ -625,6 +625,12 @@ namespace whisperer
             timeremaining.Text = $"{totalHours}:{t:mm\\:ss}";
         }
 
+        void setelapsed()
+        {
+            int totalHours = (int)sw.Elapsed.TotalHours;
+            timeremaining.Text = $"{totalHours}:{sw.Elapsed:mm\\:ss}";
+        }
+
         int maxmains = 0;
         void updatetimeremaining()
         {
@@ -1066,8 +1072,7 @@ namespace whisperer
 
         void timer1_Tick(object sender, EventArgs e)
         {
-            label10.Text = sw.Elapsed.Hours.ToString("00") + ":" + sw.Elapsed.Minutes.ToString("00") + ":" +
-                sw.Elapsed.Seconds.ToString("00");
+            setelapsed();
             if (timeremaining.Text[0] == '-')
                 return;
             string[] rems = timeremaining.Text.Split(':');
