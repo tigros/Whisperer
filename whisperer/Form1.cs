@@ -628,7 +628,7 @@ namespace whisperer
         void setelapsed()
         {
             int totalHours = (int)sw.Elapsed.TotalHours;
-            timeremaining.Text = $"{totalHours}:{sw.Elapsed:mm\\:ss}";
+            timeelapsed.Text = $"{totalHours}:{sw.Elapsed:mm\\:ss}";
         }
 
         int maxmains = 0;

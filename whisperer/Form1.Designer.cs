@@ -60,7 +60,7 @@
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
             this.label9 = new System.Windows.Forms.Label();
-            this.label10 = new System.Windows.Forms.Label();
+            this.timeelapsed = new System.Windows.Forms.Label();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.button6 = new System.Windows.Forms.Button();
             this.textBox3 = new System.Windows.Forms.TextBox();
@@ -458,14 +458,14 @@
             // 
             // label10
             // 
-            this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.label10.AutoSize = true;
-            this.label10.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label10.Location = new System.Drawing.Point(912, 479);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(58, 17);
-            this.label10.TabIndex = 56;
-            this.label10.Text = "00:00:00";
+            this.timeelapsed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.timeelapsed.AutoSize = true;
+            this.timeelapsed.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.timeelapsed.Location = new System.Drawing.Point(912, 479);
+            this.timeelapsed.Name = "label10";
+            this.timeelapsed.Size = new System.Drawing.Size(58, 17);
+            this.timeelapsed.TabIndex = 56;
+            this.timeelapsed.Text = "00:00:00";
             // 
             // timer1
             // 
@@ -625,7 +625,7 @@
             this.Controls.Add(this.button6);
             this.Controls.Add(this.textBox3);
             this.Controls.Add(this.label11);
-            this.Controls.Add(this.label10);
+            this.Controls.Add(this.timeelapsed);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.button5);
             this.Controls.Add(this.button4);
@@ -698,7 +698,7 @@
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button5;
         private System.Windows.Forms.Label label9;
-        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Label timeelapsed;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.Button button6;
         private System.Windows.Forms.TextBox textBox3;
