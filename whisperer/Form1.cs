@@ -619,11 +619,17 @@ namespace whisperer
             return filename.Substring(filename.LastIndexOf('"') + 1);
         }
 
+        void settimeremaining(TimeSpan t)
+        {
+            int totalHours = (int)t.TotalHours;
+            timeremaining.Text = $"{totalHours}:{t:mm\\:ss}";
+        }
+
         int maxmains = 0;
         void updatetimeremaining()
         {
-            TimeSpan exectime = new TimeSpan();
-            TimeSpan duration = new TimeSpan();
+            TimeSpan exectime = TimeSpan.Zero;
+            TimeSpan duration = TimeSpan.Zero;
 
             foreach (KeyValuePair<string, durationrec> r in durations)
             {
@@ -646,9 +652,9 @@ namespace whisperer
             TimeSpan ttodo = new TimeSpan(0, 0, todo);
             Invoke(new Action(() =>
             {
-                timeremaining.Text = ttodo.ToString();
+                settimeremaining(ttodo);
             }));
-        }
+        }       
 
         void whisper_Exited(object sender, EventArgs e, string errorOutput)
         {
@@ -777,7 +783,7 @@ namespace whisperer
             while (!quitq)
             {
                 while (!quitq && whisperq.TryDequeue(out act))
-                    act.Invoke();
+                    act();
                 Thread.Sleep(100);
             }
         }
@@ -896,7 +902,7 @@ namespace whisperer
 
         TimeSpan gettottime()
         {
-            TimeSpan tot = new TimeSpan();
+            TimeSpan tot = TimeSpan.Zero;
             foreach (KeyValuePair<string, durationrec> r in durations)
                 tot += r.Value.duration;
             return tot;
@@ -1068,7 +1074,7 @@ namespace whisperer
             TimeSpan t = new TimeSpan(Convert.ToInt32(rems[0]), Convert.ToInt32(rems[1]), Convert.ToInt32(rems[2]));
             t -= new TimeSpan(0, 0, 1);
             if (t >= TimeSpan.Zero)
-                timeremaining.Text = t.ToString();
+                settimeremaining(t);
         }
 
         void savefilelist()
