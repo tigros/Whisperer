@@ -63,7 +63,7 @@ namespace whisperer
         }
 
         void Form1_Load(object sender, EventArgs e)
-        {
+        {            
             if (!IsAtLeastWindows10())
             {
                 ShowError(@"Unsupported Windows version, will now exit.");
@@ -71,6 +71,9 @@ namespace whisperer
                 Application.Exit();
                 return;
             }
+
+            if (Execute("ffmpeg.exe") == 2)
+                ShowError(ffmpegnotfound);
 
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
@@ -413,7 +416,7 @@ namespace whisperer
             catch (Exception ex)
             {
                 cancel = true;
-                ShowError("ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer");
+                ShowError(ffmpegnotfound);
             }
         }
 
@@ -560,11 +563,11 @@ namespace whisperer
             catch { }
             try
             {
-                IntPtr result = ShellExecute(0, "", path, "", dir, SW_SHOWNORMAL);
+                IntPtr result = ShellExecute(0, "", path, "", dir, path == "ffmpeg.exe" ? SW_HIDE : SW_SHOWNORMAL);
                 return result.ToInt32();
             }
             catch { }
-            return 0;
+            return -1;
         }
 
         void openinplayer(object o)
@@ -667,6 +670,7 @@ namespace whisperer
             try
             {
                 var proc = sender as Process;
+                string filename = getfilename(proc);
                 try
                 {
                     durationrec dr = durations[proc.StartInfo.Domain];
@@ -676,11 +680,10 @@ namespace whisperer
                 try
                 {
                     if (proc.ExitCode != 0)
-                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}");
+                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}");
                 }
                 catch { }
 
-                string filename = getfilename(proc);
                 if (File.Exists(filename))
                     File.Delete(filename);
                 completed++;
@@ -875,7 +878,7 @@ namespace whisperer
                 if (!cancel)
                 {
                     cancel = true;
-                    ShowError(ex.ToString());
+                    ShowError(ffmpegnotfound);
                 }
             }
             return TimeSpan.Zero;
@@ -1274,7 +1277,10 @@ namespace whisperer
                 mbi = iserr ? MessageBoxIcon.Error : MessageBoxIcon.Information;
             else
                 mbi = MessageBoxIcon.Question;
-            dr = MessageBox.Show(msg, caption, mbb, mbi);
+            Invoke(new Action(() =>
+            {
+                dr = MessageBox.Show(this, msg, caption, mbb, mbi);
+            }));
             return dr;
         }
 
@@ -1316,10 +1322,7 @@ namespace whisperer
                 }
                 else if (had1)
                 {
-                    string message = "Delete the scheduled task?";
-                    string caption = "Delete Schedule";
-                    MessageBoxButtons buttons = MessageBoxButtons.YesNo;
-                    DialogResult result = AskQuestion(message, caption, buttons);
+                    DialogResult result = AskQuestion("Delete the scheduled task?", "Delete Schedule", MessageBoxButtons.YesNo);
                     if (result == DialogResult.Yes)
                         schedtask.DeleteTask("Whisperer");
                 }
@@ -1383,6 +1386,8 @@ namespace whisperer
             fastObjectListView1.RemoveObjects(fastObjectListView1.SelectedObjects);
         }
 
+        const string ffmpegnotfound = "ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer";
+        const int SW_HIDE = 0;
         const int SW_SHOWNORMAL = 1;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
