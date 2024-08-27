@@ -10,7 +10,9 @@ using System.IO;
 using System.IO.Pipes;
 using System.Media;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using TaskScheduler;
 
@@ -139,8 +141,10 @@ namespace whisperer
             string s = readreg("files", "");
             string[] files = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             fastObjectListView1.BeginUpdate();
+            List<filenameline> items = new List<filenameline>();
             foreach (string file in files)
-                fastObjectListView1.AddObject(new filenameline(file));
+                items.Add(new filenameline(file));
+            fastObjectListView1.AddObjects(items);
             fastObjectListView1.EndUpdate();
             fastObjectListView1.SelectAll();
             setcount();
@@ -273,28 +277,22 @@ namespace whisperer
             freemem = getfreegpumem();
         }
 
-        bool fexists(string name)
-        {
-            for (int i = 0; i < fastObjectListView1.Items.Count; i++)
-            {
-                string s = fastObjectListView1.Items[i].Text;
-                if (name == s)
-                    return true;
-            }
-            return false;
-        }
-
         void button1_Click(object sender, EventArgs e)
         {
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
                 Cursor = Cursors.WaitCursor;
                 fastObjectListView1.BeginUpdate();
+                filllookup();
                 foreach (string filename in openFileDialog1.FileNames)
                 {
-                    if (!fexists(filename))
+                    if (!filelookup.ContainsKey(filename))
+                    {
                         fastObjectListView1.AddObject(new filenameline(filename));
+                        filelookup.TryAdd(filename, true);
+                    }
                 }
+                filelookup.Clear();
                 fastObjectListView1.EndUpdate();
                 fastObjectListView1.SelectAll();
                 setcount();
@@ -1033,6 +1031,35 @@ namespace whisperer
             setcount();
         }
 
+        ConcurrentBag<string> tmpbag = new ConcurrentBag<string>();
+        void ReadFileList(string rootFolderPath, ParallelLoopState state1 = null)
+        {
+            try
+            {
+                if ((File.GetAttributes(rootFolderPath) & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
+                {
+
+                    var files = Directory.GetFiles(rootFolderPath);
+                    Parallel.ForEach(files, (string afile, ParallelLoopState state) =>
+                    {
+                        Thread.CurrentThread.Priority = ThreadPriority.Highest;
+                        if (issoundtype(afile) && !filelookup.ContainsKey(afile))
+                        {
+                            tmpbag.Add(afile);
+                            filelookup.TryAdd(afile, true);
+                        }
+                    });
+
+                    var directories = Directory.GetDirectories(rootFolderPath);
+                    Parallel.ForEach(directories, ReadFileList);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }
+        }
+
         void fastObjectListView1_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -1041,15 +1068,43 @@ namespace whisperer
                 e.Effect = DragDropEffects.None;
         }
 
+        void loadbag()
+        {
+            List<filenameline> items = new List<filenameline>();
+            string file;
+            while (tmpbag.TryTake(out file))
+                items.Add(new filenameline(file));
+            fastObjectListView1.AddObjects(items);
+        }
+
+        ConcurrentDictionary<string, bool> filelookup = new ConcurrentDictionary<string, bool>();
+        void filllookup()
+        {
+            filelookup.Clear();
+            for (int i = 0; i < fastObjectListView1.Items.Count; i++)
+            {
+                string filename = fastObjectListView1.Items[i].Text;
+                filelookup.TryAdd(filename, true);
+            }
+        }
+
         void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
         {
             Cursor = Cursors.WaitCursor;
             fastObjectListView1.BeginUpdate();
+            filllookup();
             foreach (string file in (string[])e.Data.GetData(DataFormats.FileDrop))
             {
-                if (!fexists(file))
+                if ((File.GetAttributes(file) & FileAttributes.Directory) == FileAttributes.Directory)
+                    ReadFileList(file);
+                else if (!filelookup.ContainsKey(file))
+                {
                     fastObjectListView1.AddObject(new filenameline(file));
+                    filelookup.TryAdd(file, true);
+                }
             }
+            loadbag();
+            filelookup.Clear();
             fastObjectListView1.EndUpdate();
             fastObjectListView1.SelectAll();
             setcount();
@@ -1087,10 +1142,10 @@ namespace whisperer
 
         void savefilelist()
         {
-            string s = "";
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < fastObjectListView1.Items.Count; i++)
-                s += fastObjectListView1.Items[i].Text + ";";
-            writereg("files", s.TrimEnd(';'));
+                sb.Append(fastObjectListView1.Items[i].Text + ";");
+            writereg("files", sb.ToString().TrimEnd(';'));
         }
 
         void savesettings()
