@@ -939,6 +939,7 @@ namespace whisperer
                 tot += r.Value.duration;
             return tot;
         }
+
         string getlangcode(string lang)
         {
             if (lang == "Default")
@@ -1432,16 +1433,17 @@ namespace whisperer
         {
             if (e.ColumnIndex == 0)
             {
-            filenameline f = e.Model as filenameline;
-            if (f != null)
-            {
-                contextMenuStrip1.Tag = f;
-                e.MenuStrip = this.contextMenuStrip1;
+                filenameline f = e.Model as filenameline;
+                if (f != null)
+                {
+                    contextMenuStrip1.Tag = f;
+                    e.MenuStrip = this.contextMenuStrip1;
                 }
             }
             else
                 e.MenuStrip = this.contextMenuStrip2;
         }
+
         private void resetAllToDefaultToolStripMenuItem_Click(object sender, EventArgs e)
         {
             fastObjectListView1.BeginUpdate();
@@ -1564,12 +1566,14 @@ namespace whisperer
             this.lang = "Default";
             this.translate = false;
         }
+
         public filenameline(string filename, bool translate)
         {
             this.filename = filename;
             this.lang = "Default";
             this.translate = translate;
         }
+
         public filenameline(string filename, string lang, bool translate)
         {
             this.filename = filename;
@@ -1600,6 +1604,7 @@ namespace whisperer
                     return true;
             return false;
         }
+
         public static string FindRow(this ArrayList arrayList, string filename)
         {
             filename += ';';

@@ -153,6 +153,7 @@
             // olvColumn2
             // 
             this.olvColumn2.AspectName = "lang";
+            this.olvColumn2.HeaderFont = new System.Drawing.Font("Calibri", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.olvColumn2.Text = "Language";
             this.olvColumn2.Width = 70;
             // 
@@ -160,6 +161,7 @@
             // 
             this.olvColumn3.AspectName = "translate";
             this.olvColumn3.CheckBoxes = true;
+            this.olvColumn3.HeaderFont = new System.Drawing.Font("Calibri", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.olvColumn3.Text = "Translate";
             this.olvColumn3.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.olvColumn3.Width = 65;
