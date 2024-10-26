@@ -99,6 +99,9 @@
     <Content Include="main.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="sound.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="wicon.ico" />
     <None Include="Resources\tada.wav" />
     <Content Include="voice_to_txt.ico" />

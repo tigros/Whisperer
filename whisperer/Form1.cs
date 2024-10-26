@@ -91,9 +91,10 @@ namespace whisperer
 
             getwhispersize(true);
 
-            if (File.Exists("languageCodez.tsv"))
+            string tsvfile = Path.Combine(rootdir, "languageCodez.tsv");
+            if (File.Exists(tsvfile))
             {
-                foreach (string line in File.ReadLines("languageCodez.tsv"))
+                foreach (string line in File.ReadLines(tsvfile))
                 {
                     string[] lang = line.Split('\t');
                     string proper = toproper(lang[2]);
@@ -140,14 +141,22 @@ namespace whisperer
         {
             string s = readreg("files", "");
             string[] files = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            s = readreg("langs", "");
+            string[] reglangs = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            s = readreg("translates", "");
+            string[] translates = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             fastObjectListView1.BeginUpdate();
             List<filenameline> items = new List<filenameline>();
-            foreach (string file in files)
-                items.Add(new filenameline(file));
+            try
+            {
+                for (int i = 0; i < files.Length; i++)
+                    items.Add(new filenameline(files[i], reglangs.Length > 0 ? reglangs[i] : "Default",
+                        translates.Length > 0 ? (translates[i] == "1" ? true : false) : checkBox2.Checked));
+            }
+            catch { }
             fastObjectListView1.AddObjects(items);
             fastObjectListView1.EndUpdate();
             fastObjectListView1.SelectAll();
-            setcount();
         }
 
         void loadsettings()
@@ -288,14 +297,13 @@ namespace whisperer
                 {
                     if (!filelookup.ContainsKey(filename))
                     {
-                        fastObjectListView1.AddObject(new filenameline(filename));
+                        fastObjectListView1.AddObject(new filenameline(filename, checkBox2.Checked));
                         filelookup.TryAdd(filename, true);
                     }
                 }
                 filelookup.Clear();
                 fastObjectListView1.EndUpdate();
                 fastObjectListView1.SelectAll();
-                setcount();
                 Cursor = Cursors.Default;
             }
         }
@@ -347,9 +355,9 @@ namespace whisperer
             return whispersize;
         }
 
-        bool outputexists(string filename)
+        bool outputexists(string filename, bool ignorecb = false)
         {
-            if (!skipIfExistCheckBox.Checked && !Program.iswatch)
+            if (!ignorecb && !skipIfExistCheckBox.Checked && !Program.iswatch)
                 return false;
             filename = filename.Remove(filename.LastIndexOf('.'));
 
@@ -385,6 +393,7 @@ namespace whisperer
                 while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
                     whisperq.Count >= numericUpDown1.Value) && !cancel)
                     Thread.Sleep(100);
+                filename = filename.Substring(0, filename.IndexOf(';'));
                 string outname = wavname(filename);
                 if (outname == "" || cancel)
                     return;
@@ -473,12 +482,14 @@ namespace whisperer
                         Thread.Sleep(1000);
                     Process proc = new Process();
                     string errorOutput = "";
-                    string translate = " ";
-                    if (checkBox2.Checked)
-                        translate = " -tr ";
                     proc.StartInfo.FileName = "main.exe";
                     proc.StartInfo.Domain = p.StartInfo.Domain;
-
+                    string[] splitrow = glbarray.FindRow(p.StartInfo.Domain).Split(';');
+                    string langcode = splitrow[1];
+                    string translate = " ";
+                    if (splitrow[2] == "1")
+                        translate = " -tr ";
+                    
                     string outtypes = "";
                     if (srtCheckBox.Checked)
                         outtypes = "--output-srt ";
@@ -491,20 +502,10 @@ namespace whisperer
                     if (glbprompt != "")
                         prompt = " --prompt \"" + glbprompt + "\" ";
 
-                    proc.StartInfo.Arguments = "--language " + glblang + translate + outtypes + "--no-timestamps --max-context 0 --model \"" +
+                    proc.StartInfo.Arguments = "--language " + langcode + translate + outtypes + "--no-timestamps --max-context 0 --model \"" +
                         glbmodel + "\"" + prompt + "\"" + filename + "\"";
                     proc.StartInfo.UseShellExecute = false;
                     proc.StartInfo.CreateNoWindow = true;
-                    proc.StartInfo.RedirectStandardError = true;
-                    proc.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(e.Data))
-                        {
-                            Debug.WriteLine(e.Data);
-                            errorOutput += e.Data;
-                            errorOutput += "\n";
-                        }
-                    };
 
                     if (outputexists(filename))
                     {
@@ -530,6 +531,16 @@ namespace whisperer
                     if (cancel)
                         return;
 
+                    proc.StartInfo.RedirectStandardError = true;
+                    proc.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            Debug.WriteLine(e.Data);
+                            errorOutput += e.Data;
+                            errorOutput += "\n";
+                        }
+                    };
                     int wlen = Process.GetProcessesByName("main").Length;
                     proc.EnableRaisingEvents = true;
                     proc.Exited += (sender, e) => { whisper_Exited(sender, e, errorOutput); };
@@ -679,6 +690,8 @@ namespace whisperer
                 {
                     if (proc.ExitCode != 0)
                         ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}");
+                    else if (!outputexists(filename, !Program.iswatch))
+                        ShowError($"Something went wrong, no output produced!\n\nFile name: {filename}");
                 }
                 catch { }
 
@@ -713,8 +726,19 @@ namespace whisperer
             return true;
         }
 
+        void playsound()
+        {
+            string soundfile = Path.Combine(rootdir, "sound.wav");
+            if (File.Exists(soundfile))
+                new SoundPlayer(soundfile).Play();
+            else
+                new SoundPlayer(Properties.Resources.tada).Play();
+        }
+
         void whendone()
         {
+            durations.Clear();
+            glbarray.Clear();
             if (cancel || Program.iswatch)
                 return;
             if (comboBox2.Text == "Shutdown")
@@ -728,7 +752,7 @@ namespace whisperer
             else if (comboBox2.Text == "Log off")
                 ExitWindowsEx(0, 0);
             else if (comboBox2.Text == "Play sound")
-                new SoundPlayer(Properties.Resources.tada).Play();
+                playsound();
         }
 
         bool notdone()
@@ -837,8 +861,8 @@ namespace whisperer
                 {
                     string[] files = Directory.GetFiles(folder);
                     foreach (string file in files)
-                        if (issoundtype(file) && !glbarray.Contains(file))
-                            glbarray.Add(file);
+                        if (issoundtype(file) && !glbarray.MyContains(file))
+                            glbarray.Add(file + ";" + langs[comboBox1.Text] + ";" + (checkBox2.Checked ? "1" : "0"));
                 }
                 catch { }
             }
@@ -888,7 +912,8 @@ namespace whisperer
             durations.Clear();
             foreach (string filename in glbarray)
             {
-                string outname = wavname(filename);
+                string fname = filename.Substring(0, filename.IndexOf(';'));
+                string outname = wavname(fname);
 
                 if (outname == "" || outputexists(outname))
                     continue;
@@ -897,10 +922,10 @@ namespace whisperer
                 {
                     if (cancel)
                         return;
-                    durationrec r = new durationrec(getduration(filename));
+                    durationrec r = new durationrec(getduration(fname));
                     if (r.duration != TimeSpan.Zero)
                         lock (durations)
-                            durations.Add(filename, r);
+                            durations.Add(fname, r);
                 });
                 tasks.Add(t);
             }
@@ -913,6 +938,12 @@ namespace whisperer
             foreach (KeyValuePair<string, durationrec> r in durations)
                 tot += r.Value.duration;
             return tot;
+        }
+        string getlangcode(string lang)
+        {
+            if (lang == "Default")
+                lang = comboBox1.Text;
+            return langs[lang];
         }
 
         void button3_Click(object sender, EventArgs e)
@@ -968,7 +999,7 @@ namespace whisperer
                     }
                     else
                         foreach (filenameline filename in fastObjectListView1.SelectedObjects)
-                            glbarray.Add(filename.filename);
+                            glbarray.Add(filename.filename + ";" + getlangcode(filename.lang) + ";" + (filename.translate ? "1" : "0"));
                     cancel = false;
                     goButton.Text = "Cancel";
                     completed = 0;
@@ -984,11 +1015,7 @@ namespace whisperer
                         Thread.Sleep(10);
                     }
                     quitq = false;
-                    try
-                    {
-                        glblang = langs[comboBox1.Text];
-                    }
-                    catch { }
+                    glblang = langs[comboBox1.Text];
                     Thread thr = new Thread(() =>
                     {
                         getdurations();
@@ -1038,7 +1065,6 @@ namespace whisperer
             {
                 if ((File.GetAttributes(rootFolderPath) & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                 {
-
                     var files = Directory.GetFiles(rootFolderPath);
                     Parallel.ForEach(files, (string afile, ParallelLoopState state) =>
                     {
@@ -1073,7 +1099,7 @@ namespace whisperer
             List<filenameline> items = new List<filenameline>();
             string file;
             while (tmpbag.TryTake(out file))
-                items.Add(new filenameline(file));
+                items.Add(new filenameline(file, checkBox2.Checked));
             fastObjectListView1.AddObjects(items);
         }
 
@@ -1099,7 +1125,7 @@ namespace whisperer
                     ReadFileList(file);
                 else if (!filelookup.ContainsKey(file))
                 {
-                    fastObjectListView1.AddObject(new filenameline(file));
+                    fastObjectListView1.AddObject(new filenameline(file, checkBox2.Checked));
                     filelookup.TryAdd(file, true);
                 }
             }
@@ -1107,7 +1133,6 @@ namespace whisperer
             filelookup.Clear();
             fastObjectListView1.EndUpdate();
             fastObjectListView1.SelectAll();
-            setcount();
             Cursor = Cursors.Default;
         }
 
@@ -1143,9 +1168,17 @@ namespace whisperer
         void savefilelist()
         {
             StringBuilder sb = new StringBuilder();
+            StringBuilder langssb = new StringBuilder();
+            StringBuilder translatesb = new StringBuilder();
             for (int i = 0; i < fastObjectListView1.Items.Count; i++)
+            {
                 sb.Append(fastObjectListView1.Items[i].Text + ";");
+                langssb.Append(fastObjectListView1.Items[i].SubItems[1].Text + ";");
+                translatesb.Append((fastObjectListView1.Items[i].SubItems[2].Text == "True" ? "1" : "0") + ";");
+            }
             writereg("files", sb.ToString().TrimEnd(';'));
+            writereg("langs", langssb.ToString().TrimEnd(';'));
+            writereg("translates", translatesb.ToString().TrimEnd(';'));
         }
 
         void savesettings()
@@ -1397,12 +1430,27 @@ namespace whisperer
 
         private void fastObjectListView1_CellRightClick(object sender, CellRightClickEventArgs e)
         {
+            if (e.ColumnIndex == 0)
+            {
             filenameline f = e.Model as filenameline;
             if (f != null)
             {
                 contextMenuStrip1.Tag = f;
                 e.MenuStrip = this.contextMenuStrip1;
+                }
             }
+            else
+                e.MenuStrip = this.contextMenuStrip2;
+        }
+        private void resetAllToDefaultToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            fastObjectListView1.BeginUpdate();
+            foreach (filenameline obj in fastObjectListView1.Objects)
+            {
+                obj.lang = "Default";
+                obj.translate = checkBox2.Checked;
+            }
+            fastObjectListView1.EndUpdate();
         }
 
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
@@ -1441,6 +1489,44 @@ namespace whisperer
             fastObjectListView1.RemoveObjects(fastObjectListView1.SelectedObjects);
         }
 
+        private void fastObjectListView1_CellEditStarting(object sender, CellEditEventArgs e)
+        {
+            if (e.Column.AspectName == "lang")
+            {
+                ComboBox comboBox = new ComboBox();
+                comboBox.Bounds = e.CellBounds;
+                comboBox.Font = ((ObjectListView)sender).Font;
+                comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+                string[] languageNames = new string[langs.Count];
+                langs.Keys.CopyTo(languageNames, 0);
+                Array.Sort(languageNames);
+                List<string> list = new List<string>(languageNames);
+                list.Insert(0, "Default");
+                languageNames = list.ToArray();
+                comboBox.Items.AddRange(languageNames);
+                filenameline fileItem = (filenameline)e.RowObject;
+                comboBox.SelectedItem = fileItem.lang == comboBox1.SelectedItem.ToString() ? "Default" : fileItem.lang;
+                e.Control = comboBox;
+            }
+        }
+        private void fastObjectListView1_CellEditFinishing(object sender, CellEditEventArgs e)
+        {
+            if (e.Column.AspectName == "lang")
+            {
+                ComboBox comboBox = e.Control as ComboBox;
+                if (comboBox != null)
+                    e.NewValue = comboBox.SelectedItem.ToString() == comboBox1.SelectedItem.ToString() ? "Default" : comboBox.SelectedItem.ToString();
+            }
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            fastObjectListView1.BeginUpdate();
+            foreach (filenameline obj in fastObjectListView1.Objects)
+                obj.translate = checkBox2.Checked;
+            fastObjectListView1.EndUpdate();
+        }
+
         const string ffmpegnotfound = "ffmpeg.exe not found, make sure it is on your path or same folder as Whisperer";
         const int SW_HIDE = 0;
         const int SW_SHOWNORMAL = 1;
@@ -1453,7 +1539,7 @@ namespace whisperer
 
         [DllImport("user32.dll")]
         public static extern bool ExitWindowsEx(uint uFlags, uint dwReason);
-        
+
         [DllImport("user32.dll")]
         public static extern void LockWorkStation();
 
@@ -1469,10 +1555,26 @@ namespace whisperer
     public class filenameline
     {
         public string filename;
+        public string lang;
+        public bool translate;
 
         public filenameline(string filename)
         {
             this.filename = filename;
+            this.lang = "Default";
+            this.translate = false;
+        }
+        public filenameline(string filename, bool translate)
+        {
+            this.filename = filename;
+            this.lang = "Default";
+            this.translate = translate;
+        }
+        public filenameline(string filename, string lang, bool translate)
+        {
+            this.filename = filename;
+            this.lang = lang;
+            this.translate = translate;
         }
     }
 
@@ -1488,4 +1590,23 @@ namespace whisperer
         }
     }
 
+    public static class Extensions
+    {
+        public static bool MyContains(this ArrayList arrayList, string filename)
+        {
+            filename += ';';
+            foreach (string s in arrayList)
+                if (s.StartsWith(filename))
+                    return true;
+            return false;
+        }
+        public static string FindRow(this ArrayList arrayList, string filename)
+        {
+            filename += ';';
+            foreach (string s in arrayList)
+                if (s.StartsWith(filename))
+                    return s;
+            return "";
+        }
+    }
 }

@@ -34,6 +34,8 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.fastObjectListView1 = new BrightIdeasSoftware.FastObjectListView();
             this.olvColumn1 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
+            this.olvColumn2 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
+            this.olvColumn3 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             this.button2 = new System.Windows.Forms.Button();
             this.goButton = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
@@ -75,9 +77,12 @@
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenuStrip2 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.resetAllToDefaultToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.fastObjectListView1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
+            this.contextMenuStrip2.SuspendLayout();
             this.SuspendLayout();
             // 
             // button1
@@ -100,14 +105,19 @@
             // fastObjectListView1
             // 
             this.fastObjectListView1.AllColumns.Add(this.olvColumn1);
+            this.fastObjectListView1.AllColumns.Add(this.olvColumn2);
+            this.fastObjectListView1.AllColumns.Add(this.olvColumn3);
             this.fastObjectListView1.AllowDrop = true;
             this.fastObjectListView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.fastObjectListView1.AutoArrange = false;
+            this.fastObjectListView1.CellEditActivation = BrightIdeasSoftware.ObjectListView.CellEditActivateMode.SingleClick;
             this.fastObjectListView1.CellEditUseWholeCell = false;
             this.fastObjectListView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.olvColumn1});
+            this.olvColumn1,
+            this.olvColumn2,
+            this.olvColumn3});
             this.fastObjectListView1.Cursor = System.Windows.Forms.Cursors.Default;
             this.fastObjectListView1.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.fastObjectListView1.FullRowSelect = true;
@@ -125,6 +135,8 @@
             this.fastObjectListView1.UseTranslucentSelection = true;
             this.fastObjectListView1.View = System.Windows.Forms.View.Details;
             this.fastObjectListView1.VirtualMode = true;
+            this.fastObjectListView1.CellEditFinishing += new BrightIdeasSoftware.CellEditEventHandler(this.fastObjectListView1_CellEditFinishing);
+            this.fastObjectListView1.CellEditStarting += new BrightIdeasSoftware.CellEditEventHandler(this.fastObjectListView1_CellEditStarting);
             this.fastObjectListView1.CellClick += new System.EventHandler<BrightIdeasSoftware.CellClickEventArgs>(this.fastObjectListView1_CellClick);
             this.fastObjectListView1.CellRightClick += new System.EventHandler<BrightIdeasSoftware.CellRightClickEventArgs>(this.fastObjectListView1_CellRightClick);
             this.fastObjectListView1.SelectionChanged += new System.EventHandler(this.fastObjectListView1_SelectionChanged);
@@ -136,7 +148,21 @@
             this.olvColumn1.AspectName = "filename";
             this.olvColumn1.HeaderFont = new System.Drawing.Font("Calibri", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.olvColumn1.Text = "File name";
-            this.olvColumn1.Width = 875;
+            this.olvColumn1.Width = 750;
+            // 
+            // olvColumn2
+            // 
+            this.olvColumn2.AspectName = "lang";
+            this.olvColumn2.Text = "Language";
+            this.olvColumn2.Width = 70;
+            // 
+            // olvColumn3
+            // 
+            this.olvColumn3.AspectName = "translate";
+            this.olvColumn3.CheckBoxes = true;
+            this.olvColumn3.Text = "Translate";
+            this.olvColumn3.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.olvColumn3.Width = 65;
             // 
             // button2
             // 
@@ -269,6 +295,7 @@
             this.checkBox2.TabIndex = 42;
             this.checkBox2.Text = "Translate to English";
             this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox2_CheckedChanged);
             // 
             // label6
             // 
@@ -456,13 +483,13 @@
             this.label9.TabIndex = 55;
             this.label9.Text = "Elapsed:";
             // 
-            // label10
+            // timeelapsed
             // 
             this.timeelapsed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.timeelapsed.AutoSize = true;
             this.timeelapsed.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.timeelapsed.Location = new System.Drawing.Point(912, 479);
-            this.timeelapsed.Name = "label10";
+            this.timeelapsed.Name = "timeelapsed";
             this.timeelapsed.Size = new System.Drawing.Size(58, 17);
             this.timeelapsed.TabIndex = 56;
             this.timeelapsed.Text = "00:00:00";
@@ -612,6 +639,21 @@
             this.toolStripMenuItem4.Text = "Remove Selected";
             this.toolStripMenuItem4.Click += new System.EventHandler(this.toolStripMenuItem4_Click);
             // 
+            // contextMenuStrip2
+            // 
+            this.contextMenuStrip2.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.contextMenuStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.resetAllToDefaultToolStripMenuItem});
+            this.contextMenuStrip2.Name = "contextMenuStrip2";
+            this.contextMenuStrip2.Size = new System.Drawing.Size(208, 28);
+            // 
+            // resetAllToDefaultToolStripMenuItem
+            // 
+            this.resetAllToDefaultToolStripMenuItem.Name = "resetAllToDefaultToolStripMenuItem";
+            this.resetAllToDefaultToolStripMenuItem.Size = new System.Drawing.Size(207, 24);
+            this.resetAllToDefaultToolStripMenuItem.Text = "Reset All to Default";
+            this.resetAllToDefaultToolStripMenuItem.Click += new System.EventHandler(this.resetAllToDefaultToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -661,6 +703,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.fastObjectListView1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
+            this.contextMenuStrip2.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -713,6 +756,10 @@
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem4;
+        private BrightIdeasSoftware.OLVColumn olvColumn2;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip2;
+        private System.Windows.Forms.ToolStripMenuItem resetAllToDefaultToolStripMenuItem;
+        private BrightIdeasSoftware.OLVColumn olvColumn3;
     }
 }
 
