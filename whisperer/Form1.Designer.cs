@@ -70,7 +70,6 @@
             this.button7 = new System.Windows.Forms.Button();
             this.textBox4 = new System.Windows.Forms.TextBox();
             this.label12 = new System.Windows.Forms.Label();
-            this.timeremaining = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -490,11 +489,11 @@
             this.timeelapsed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.timeelapsed.AutoSize = true;
             this.timeelapsed.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.timeelapsed.Location = new System.Drawing.Point(912, 479);
+            this.timeelapsed.Location = new System.Drawing.Point(917, 479);
             this.timeelapsed.Name = "timeelapsed";
-            this.timeelapsed.Size = new System.Drawing.Size(58, 17);
+            this.timeelapsed.Size = new System.Drawing.Size(51, 17);
             this.timeelapsed.TabIndex = 56;
-            this.timeelapsed.Text = "00:00:00";
+            this.timeelapsed.Text = "0:00:00";
             // 
             // timer1
             // 
@@ -570,17 +569,6 @@
             this.label12.Size = new System.Drawing.Size(89, 17);
             this.label12.TabIndex = 61;
             this.label12.Text = "Initial prompt:";
-            // 
-            // timeremaining
-            // 
-            this.timeremaining.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.timeremaining.AutoSize = true;
-            this.timeremaining.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.timeremaining.Location = new System.Drawing.Point(912, 501);
-            this.timeremaining.Name = "timeremaining";
-            this.timeremaining.Size = new System.Drawing.Size(58, 17);
-            this.timeremaining.TabIndex = 64;
-            this.timeremaining.Text = "00:00:00";
             // 
             // label14
             // 
@@ -661,7 +649,6 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1233, 534);
-            this.Controls.Add(this.timeremaining);
             this.Controls.Add(this.label14);
             this.Controls.Add(this.textBox4);
             this.Controls.Add(this.label12);
@@ -751,7 +738,6 @@
         private System.Windows.Forms.Button button7;
         private System.Windows.Forms.TextBox textBox4;
         private System.Windows.Forms.Label label12;
-        private System.Windows.Forms.Label timeremaining;
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;

@@ -39,10 +39,18 @@ namespace whisperer
         long largereq = 0;
         Dictionary<string, durationrec> durations = new Dictionary<string, durationrec>();
         TimeSpan tottime;
+        CustomProgressBar progressBar = new CustomProgressBar();
+        DateTime starttime;
 
         public Form1()
         {
             InitializeComponent();
+            progressBar.Location = new Point(timeelapsed.Location.X, label14.Location.Y - 3);
+            progressBar.Size = new Size(comboBox1.Width, 18);
+            progressBar.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            progressBar.DisplayStyle = ProgressBarDisplayText.CustomText;
+            progressBar.CustomText = "--:--:--";
+            Controls.Add(progressBar);
             Application.AddMessageFilter(this);
         }
 
@@ -65,7 +73,7 @@ namespace whisperer
         }
 
         void Form1_Load(object sender, EventArgs e)
-        {            
+        {
             if (!IsAtLeastWindows10())
             {
                 ShowError(@"Unsupported Windows version, will now exit.");
@@ -80,7 +88,7 @@ namespace whisperer
             Thread thr = new Thread(initperfcounter);
             thr.IsBackground = true;
             thr.Start();
-            
+
             Thread watchthr = new Thread(watchwait);
             watchthr.IsBackground = true;
             watchthr.Start();
@@ -277,7 +285,7 @@ namespace whisperer
                 usedMem += value;
             });
             if (totmem < usedMem)
-                throw new Exception($"Failed to calculate free GPU memory. Used memory: {usedMem/1024/1024} MB, Total memory: {totmem/1024/1024} MB");
+                throw new Exception($"Failed to calculate free GPU memory. Used memory: {usedMem / 1024 / 1024} MB, Total memory: {totmem / 1024 / 1024} MB");
             return Convert.ToInt64(totmem - usedMem);
         }
 
@@ -489,7 +497,7 @@ namespace whisperer
                     string translate = " ";
                     if (splitrow[2] == "1")
                         translate = " -tr ";
-                    
+
                     string outtypes = "";
                     if (srtCheckBox.Checked)
                         outtypes = "--output-srt ";
@@ -634,7 +642,13 @@ namespace whisperer
         void settimeremaining(TimeSpan t)
         {
             int totalHours = (int)t.TotalHours;
-            timeremaining.Text = $"{totalHours}:{t:mm\\:ss}";
+            progressBar.CustomText = $"{totalHours}:{t:mm\\:ss}";
+            TimeSpan totalDuration = DateTime.Now - starttime + t;
+            TimeSpan elapsedTime = DateTime.Now - starttime;
+            int progress = (int)((elapsedTime.TotalMilliseconds / totalDuration.TotalMilliseconds) * 100);
+            int value = Math.Min(Math.Max(progress, 0), 100);
+            if (value > progressBar.Value)
+                progressBar.Value = value;
         }
 
         void setelapsed()
@@ -672,7 +686,7 @@ namespace whisperer
             {
                 settimeremaining(ttodo);
             }));
-        }       
+        }
 
         void whisper_Exited(object sender, EventArgs e, string errorOutput)
         {
@@ -737,8 +751,7 @@ namespace whisperer
 
         void whendone()
         {
-            durations.Clear();
-            glbarray.Clear();
+            progressBar.Value = 0;
             if (cancel || Program.iswatch)
                 return;
             if (comboBox2.Text == "Shutdown")
@@ -787,15 +800,20 @@ namespace whisperer
 
         void checkwatchfolders()
         {
-            if (!Program.iswatch)
+            if (!Program.iswatch && !cancel)
             {
                 Program.iswatch = true;
                 glbarray.Clear();
                 loadwatchfilelist();
                 getdurations();
                 tottime = gettottime();
+                starttime = DateTime.Now;
+                Invoke(new Action(() =>
+                {
+                    progressBar.Value = 0;
+                }));
                 processarray();
-                if (glbarray.Count > 0)
+                if (tottime > TimeSpan.Zero)
                     waitilldone();
                 Program.iswatch = false;
             }
@@ -862,7 +880,10 @@ namespace whisperer
                     string[] files = Directory.GetFiles(folder);
                     foreach (string file in files)
                         if (issoundtype(file) && !glbarray.MyContains(file))
-                            glbarray.Add(file + ";" + langs[comboBox1.Text] + ";" + (checkBox2.Checked ? "1" : "0"));
+                            Invoke(new Action(() =>
+                            {
+                                glbarray.Add(file + ";" + langs[comboBox1.Text] + ";" + (checkBox2.Checked ? "1" : "0"));
+                            }));
                 }
                 catch { }
             }
@@ -1038,7 +1059,9 @@ namespace whisperer
                     cq.IsBackground = true;
                     cq.Start();
 
-                    timeremaining.Text = "--:--:--";
+                    progressBar.CustomText = "--:--:--";
+                    progressBar.Value = 0;
+                    starttime = DateTime.Now;
                     sw.Restart();
                     timer1.Enabled = true;
                 }
@@ -1108,11 +1131,8 @@ namespace whisperer
         void filllookup()
         {
             filelookup.Clear();
-            for (int i = 0; i < fastObjectListView1.Items.Count; i++)
-            {
-                string filename = fastObjectListView1.Items[i].Text;
-                filelookup.TryAdd(filename, true);
-            }
+            foreach (filenameline obj in fastObjectListView1.Objects)
+                filelookup.TryAdd(obj.filename, true);
         }
 
         void fastObjectListView1_DragDrop(object sender, DragEventArgs e)
@@ -1157,9 +1177,9 @@ namespace whisperer
         void timer1_Tick(object sender, EventArgs e)
         {
             setelapsed();
-            if (timeremaining.Text[0] == '-')
+            if (progressBar.CustomText[0] == '-')
                 return;
-            string[] rems = timeremaining.Text.Split(':');
+            string[] rems = progressBar.CustomText.Split(':');
             TimeSpan t = new TimeSpan(Convert.ToInt32(rems[0]), Convert.ToInt32(rems[1]), Convert.ToInt32(rems[2]));
             t -= new TimeSpan(0, 0, 1);
             if (t >= TimeSpan.Zero)
@@ -1171,11 +1191,11 @@ namespace whisperer
             StringBuilder sb = new StringBuilder();
             StringBuilder langssb = new StringBuilder();
             StringBuilder translatesb = new StringBuilder();
-            for (int i = 0; i < fastObjectListView1.Items.Count; i++)
+            foreach (filenameline obj in fastObjectListView1.Objects)
             {
-                sb.Append(fastObjectListView1.Items[i].Text + ";");
-                langssb.Append(fastObjectListView1.Items[i].SubItems[1].Text + ";");
-                translatesb.Append((fastObjectListView1.Items[i].SubItems[2].Text == "True" ? "1" : "0") + ";");
+                sb.Append(obj.filename + ";");
+                langssb.Append(obj.lang + ";");
+                translatesb.Append((obj.translate ? "1" : "0") + ";");
             }
             writereg("files", sb.ToString().TrimEnd(';'));
             writereg("langs", langssb.ToString().TrimEnd(';'));
@@ -1511,6 +1531,7 @@ namespace whisperer
                 e.Control = comboBox;
             }
         }
+
         private void fastObjectListView1_CellEditFinishing(object sender, CellEditEventArgs e)
         {
             if (e.Column.AspectName == "lang")
@@ -1592,6 +1613,63 @@ namespace whisperer
         {
             this.duration = duration;
         }
+    }
+
+    public enum ProgressBarDisplayText
+    {
+        Percentage,
+        CustomText
+    }
+
+    public class CustomProgressBar : ProgressBar
+    {
+        private string _customText;
+        public string CustomText
+        {
+            get => _customText;
+            set
+            {
+                _customText = value;
+                Invalidate();
+            }
+        }
+        public ProgressBarDisplayText DisplayStyle { get; set; }
+
+        public CustomProgressBar()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            SetWindowTheme(this.Handle, "", "");
+            base.OnHandleCreated(e);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Rectangle rect = ClientRectangle;
+            Graphics g = e.Graphics;
+            ProgressBarRenderer.DrawHorizontalBar(g, rect);
+            rect.Inflate(-3, -3);
+            if (Value > 0)
+            {
+                Rectangle clip = new System.Drawing.Rectangle(rect.X, rect.Y, (int)Math.Round(((float)Value / Maximum) * rect.Width), rect.Height);
+                ProgressBarRenderer.DrawHorizontalChunks(g, clip);
+            }
+
+            string text = DisplayStyle == ProgressBarDisplayText.Percentage ? Value.ToString() + '%' : CustomText;
+
+            using (System.Drawing.Font f = new System.Drawing.Font("Calibri", 7.8f))
+            {
+                SizeF len = g.MeasureString(text, f);
+                Point location = new Point(Convert.ToInt32((Width / 2) - len.Width / 2), Convert.ToInt32((Height / 2) - len.Height / 2));
+                g.DrawString(text, f, Brushes.Black, location);
+            }
+        }
+
+        [DllImportAttribute("uxtheme.dll")]
+        private static extern int SetWindowTheme(IntPtr hWnd, string appname, string idlist);
     }
 
     public static class Extensions
