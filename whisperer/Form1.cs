@@ -191,7 +191,7 @@ namespace whisperer
         {
             try
             {
-                return s.Substring(0, 1).ToUpper() + s.Substring(1);
+                return s.Substring(0, 1).ToUpperInvariant() + s.Substring(1);
             }
             catch { }
             return "English";
@@ -841,7 +841,7 @@ namespace whisperer
         {
             try
             {
-                string ext = Path.GetExtension(fname).ToUpper();
+                string ext = Path.GetExtension(fname).ToUpperInvariant();
                 foreach (string s in exts)
                 {
                     if (s == ext)
@@ -880,10 +880,7 @@ namespace whisperer
                     string[] files = Directory.GetFiles(folder);
                     foreach (string file in files)
                         if (issoundtype(file) && !glbarray.MyContains(file))
-                            Invoke(new Action(() =>
-                            {
-                                glbarray.Add(file + ";" + langs[comboBox1.Text] + ";" + (checkBox2.Checked ? "1" : "0"));
-                            }));
+                            glbarray.Add(file + ";" + glblang + ";" + (checkBox2.Checked ? "1" : "0"));
                 }
                 catch { }
             }
@@ -964,7 +961,7 @@ namespace whisperer
         string getlangcode(string lang)
         {
             if (lang == "Default")
-                lang = comboBox1.Text;
+                return glblang;
             return langs[lang];
         }
 
@@ -985,6 +982,7 @@ namespace whisperer
                         return;
                     glbarray.Clear();
                     glbmodel = modelPathTextBox.Text;
+                    glblang = langs[comboBox1.Text];
                     if (!File.Exists(glbmodel))
                     {
                         ShowError(glbmodel + " not found!");
@@ -1022,12 +1020,12 @@ namespace whisperer
                     else
                         foreach (filenameline filename in fastObjectListView1.SelectedObjects)
                             glbarray.Add(filename.filename + ";" + getlangcode(filename.lang) + ";" + (filename.translate ? "1" : "0"));
+
                     cancel = false;
                     goButton.Text = "Cancel";
                     completed = 0;
                     label5.Text = "0";
                     glbsamefolder = checkBox3.Checked;
-                    glblang = "en";
                     maxmains = 0;
                     Action act = null;
                     while (whisperq.Count > 0)
@@ -1036,8 +1034,7 @@ namespace whisperer
                             ;
                         Thread.Sleep(10);
                     }
-                    quitq = false;
-                    glblang = langs[comboBox1.Text];
+                    quitq = false;                    
                     Thread thr = new Thread(() =>
                     {
                         getdurations();
@@ -1519,13 +1516,9 @@ namespace whisperer
                 comboBox.Bounds = e.CellBounds;
                 comboBox.Font = ((ObjectListView)sender).Font;
                 comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-                string[] languageNames = new string[langs.Count];
-                langs.Keys.CopyTo(languageNames, 0);
-                Array.Sort(languageNames);
-                List<string> list = new List<string>(languageNames);
-                list.Insert(0, "Default");
-                languageNames = list.ToArray();
-                comboBox.Items.AddRange(languageNames);
+                comboBox.Items.Add("Default");
+                foreach (object item in comboBox1.Items)
+                    comboBox.Items.Add(item);
                 filenameline fileItem = (filenameline)e.RowObject;
                 comboBox.SelectedItem = fileItem.lang == comboBox1.SelectedItem.ToString() ? "Default" : fileItem.lang;
                 e.Control = comboBox;
