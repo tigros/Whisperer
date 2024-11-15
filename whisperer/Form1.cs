@@ -159,7 +159,7 @@ namespace whisperer
             {
                 for (int i = 0; i < files.Length; i++)
                     items.Add(new filenameline(files[i], reglangs.Length > 0 ? reglangs[i] : "Default",
-                        translates.Length > 0 ? (translates[i] == "1" ? true : false) : checkBox2.Checked));
+                        translates.Length > 0 ? translates[i] == "1" : checkBox2.Checked));
             }
             catch { }
             fastObjectListView1.AddObjects(items);
@@ -702,6 +702,7 @@ namespace whisperer
                 catch { }
                 try
                 {
+                    renamewaves(filename);
                     if (proc.ExitCode != 0)
                         ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}");
                     else if (!outputexists(filename, !Program.iswatch))
@@ -711,8 +712,7 @@ namespace whisperer
 
                 if (File.Exists(filename))
                     File.Delete(filename);
-                completed++;
-                renamewaves(filename);
+                completed++;                
                 updatetimeremaining();
             }
             catch { }
@@ -1622,8 +1622,11 @@ namespace whisperer
             get => _customText;
             set
             {
-                _customText = value;
-                Invalidate();
+                if (value != _customText)
+                {
+                    _customText = value;
+                    Invalidate();
+                }
             }
         }
         public ProgressBarDisplayText DisplayStyle { get; set; }
