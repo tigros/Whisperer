@@ -700,27 +700,24 @@ namespace whisperer
                     dr.exectime = DateTime.Now - dr.starttime;
                 }
                 catch { }
-                try
-                {
-                    renamewaves(filename);
-                    if (proc.ExitCode != 0)
-                        ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}");
-                    else if (!outputexists(filename, !Program.iswatch))
-                        ShowError($"Something went wrong, no output produced!\n\nFile name: {filename}");
-                }
-                catch { }
 
+                renamewaves(filename);
                 if (File.Exists(filename))
                     File.Delete(filename);
-                completed++;                
+                completed++;
                 updatetimeremaining();
-            }
-            catch { }
 
-            Invoke(new Action(() =>
-            {
-                label5.Text = completed.ToString("#,##0");
-            }));
+                Invoke(new Action(() =>
+                {
+                    label5.Text = completed.ToString("#,##0");
+                }));
+
+                if (proc.ExitCode != 0)  // non-blocking
+                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}", true);
+                else if (!outputexists(filename, !Program.iswatch))
+                    ShowError($"Something went wrong, no output produced!\n\nFile name: {filename}", true);
+            }
+            catch { }            
         }
 
         bool checkdir()
@@ -1375,7 +1372,7 @@ namespace whisperer
             }
         }
 
-        DialogResult ShowMsgProc(string msg, bool iserr, string caption = "Whisperer", MessageBoxButtons mbb = MessageBoxButtons.OK)
+        DialogResult ShowMsgProc(string msg, bool iserr, string caption = "Whisperer", MessageBoxButtons mbb = MessageBoxButtons.OK, bool nonblocking = false)
         {
             MessageBoxIcon mbi;
             DialogResult dr = DialogResult.OK;
@@ -1383,10 +1380,23 @@ namespace whisperer
                 mbi = iserr ? MessageBoxIcon.Error : MessageBoxIcon.Information;
             else
                 mbi = MessageBoxIcon.Question;
-            Invoke(new Action(() =>
+
+            if (nonblocking)
             {
-                dr = MessageBox.Show(this, msg, caption, mbb, mbi);
-            }));
+                Thread thread = new Thread(() =>
+                {
+                    MessageBox.Show(msg, caption, mbb, mbi, MessageBoxDefaultButton.Button1, 0);
+                });
+                thread.IsBackground = true;
+                thread.Start();
+            }
+            else
+            {
+                Invoke(new Action(() =>
+                {
+                    dr = MessageBox.Show(this, msg, caption, mbb, mbi);
+                }));
+            }
             return dr;
         }
 
@@ -1395,9 +1405,9 @@ namespace whisperer
             ShowMsgProc(msg, false);
         }
 
-        void ShowError(string msg)
+        void ShowError(string msg, bool nonblocking = false)
         {
-            ShowMsgProc(msg, true);
+            ShowMsgProc(msg, true, nonblocking: nonblocking);
         }
 
         DialogResult AskQuestion(string msg, string caption, MessageBoxButtons buttons)
