@@ -905,10 +905,15 @@ namespace whisperer
                     return TimeSpan.Zero;
 
                 pos += 10;
-                int comma = output.IndexOf(',', pos);
-                string s = output.Substring(pos, comma - pos);
-                string[] units = s.Split(new char[] { ':', '.' });
-                return new TimeSpan(Convert.ToInt32(units[0]), Convert.ToInt32(units[1]), Convert.ToInt32(units[2]));
+                try
+                {
+                    int comma = output.IndexOf(',', pos);
+                    string s = output.Substring(pos, comma - pos);
+                    string[] units = s.Split(new char[] { ':', '.' });
+                    return new TimeSpan(Convert.ToInt32(units[0]), Convert.ToInt32(units[1]), Convert.ToInt32(units[2]));
+                }
+                catch { }
+                return TimeSpan.Zero;
             }
             catch (Exception ex)
             {
