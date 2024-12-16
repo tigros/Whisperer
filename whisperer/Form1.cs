@@ -913,7 +913,6 @@ namespace whisperer
                     return new TimeSpan(Convert.ToInt32(units[0]), Convert.ToInt32(units[1]), Convert.ToInt32(units[2]));
                 }
                 catch { }
-                return TimeSpan.Zero;
             }
             catch (Exception ex)
             {
