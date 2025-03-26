@@ -774,34 +774,28 @@ namespace whisperer
             return false;
         }
 
+        void killbyproc(string proc)
+        {
+            string fname;
+            Process[] procs = Process.GetProcessesByName(proc);
+            foreach (Process p in procs)
+            {
+                try
+                {
+                    fname = getfilename2(p.GetCommandLine());
+                    if (wavstodeloncancel.Contains(fname))
+                        p.Kill();
+                }
+                catch { }
+            }
+        }
+
         void killemall()
         {
             Thread thr = new Thread(() =>
             {
-                string fname;
-                Process[] procs = Process.GetProcessesByName("ffmpeg");
-                foreach (Process p in procs)
-                {
-                    try
-                    {
-                        fname = getfilename2(p.GetCommandLine());
-                        if (wavstodeloncancel.Contains(fname))
-                            p.Kill();
-                    }
-                    catch { }
-                }
-                procs = Process.GetProcessesByName("main");
-                foreach (Process p in procs)
-                {
-                    try
-                    {
-                        fname = getfilename2(p.GetCommandLine());
-                        if (wavstodeloncancel.Contains(fname))
-                            p.Kill();
-                    }
-                    catch { }
-                }
-
+                killbyproc("ffmpeg");
+                killbyproc("main");
                 foreach (string wav in wavstodeloncancel)
                     delwretry(wav);
             });
