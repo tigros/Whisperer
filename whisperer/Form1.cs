@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
+using System.Management;
 using System.Media;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -23,6 +25,7 @@ namespace whisperer
         long totmem = 0, freemem = 0;
         bool cancel = false;
         ArrayList glbarray = new ArrayList();
+        ArrayList wavstodeloncancel = new ArrayList();
         string glbmodel = "";
         int completed = 0;
         string glboutdir, glblang, glbprompt;
@@ -424,6 +427,7 @@ namespace whisperer
                     return;
                 }
 
+                wavstodeloncancel.Add(outname);
                 proc.EnableRaisingEvents = true;
                 proc.Exited += ffmpeg_Exited;
                 proc.Start();
@@ -480,6 +484,9 @@ namespace whisperer
 
         void qwhisper(Process p)
         {
+            if (cancel)
+                return;
+
             string filename = getfilename(p);
 
             whisperq.Enqueue(new Action(() =>
@@ -612,8 +619,7 @@ namespace whisperer
                 if (File.Exists(oldname))
                 {
                     string newname = filename + ext;
-                    if (File.Exists(newname))
-                        File.Delete(newname);
+                    delwretry(newname);
                     File.Move(oldname, newname);
                 }
             }
@@ -634,9 +640,7 @@ namespace whisperer
 
         string getfilename(Process p)
         {
-            string filename = p.StartInfo.Arguments;
-            filename = filename.TrimEnd('"');
-            return filename.Substring(filename.LastIndexOf('"') + 1);
+            return getfilename2(p.StartInfo.Arguments);
         }
 
         void settimeremaining(TimeSpan t)
@@ -692,6 +696,8 @@ namespace whisperer
         {
             try
             {
+                if (cancel)
+                    return;
                 var proc = sender as Process;
                 string filename = getfilename(proc);
                 try
@@ -702,8 +708,7 @@ namespace whisperer
                 catch { }
 
                 renamewaves(filename);
-                if (File.Exists(filename))
-                    File.Delete(filename);
+                delwretry(filename);
                 completed++;
                 updatetimeremaining();
 
@@ -713,7 +718,7 @@ namespace whisperer
                 }));
 
                 if (proc.ExitCode != 0)  // non-blocking
-                    ShowError($"main.exe has finished with error. Exit code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}", true);
+                    ShowError($"main.exe exited with error code: {proc.ExitCode}\n\n{errorOutput}\n\nFile name: {filename}", true);
                 else if (!outputexists(filename, !Program.iswatch))
                     ShowError($"Something went wrong, no output produced!\n\nFile name: {filename}", true);
             }
@@ -746,9 +751,73 @@ namespace whisperer
                 new SoundPlayer(Properties.Resources.tada).Play();
         }
 
+        string getfilename2(string args)
+        {
+            string filename = args.TrimEnd('"');
+            return filename.Substring(filename.LastIndexOf('"') + 1);
+        }
+
+        bool delwretry(string fname)
+        {
+            for (int retry = 0; retry < 50; retry++)
+            {
+                try
+                {
+                    File.Delete(fname);
+                    return true;
+                }
+                catch
+                {
+                    Thread.Sleep(100);
+                }
+            }
+            return false;
+        }
+
+        void killemall()
+        {
+            if (!cancel)
+                return;
+            Thread thr = new Thread(() =>
+            {
+                string fname;
+                Process[] procs = Process.GetProcessesByName("ffmpeg");
+                foreach (Process p in procs)
+                {
+                    try
+                    {
+                        fname = getfilename2(p.GetCommandLine());
+                        if (wavstodeloncancel.Contains(fname))
+                            p.Kill();
+                    }
+                    catch { }
+                }
+                procs = Process.GetProcessesByName("main");
+                foreach (Process p in procs)
+                {
+                    try
+                    {
+                        fname = getfilename2(p.GetCommandLine());
+                        if (wavstodeloncancel.Contains(fname))
+                            p.Kill();
+                    }
+                    catch { }
+                }
+
+                foreach (string wav in wavstodeloncancel)
+                    delwretry(wav);
+            });
+            thr.Start();
+        }
+
         void whendone()
         {
+            timer1.Enabled = false;
+            quitq = true;
             progressBar.Value = 0;
+            goButton.Text = "Go";
+            AllowSleep();
+            killemall();
             if (cancel || Program.iswatch)
                 return;
             if (comboBox2.Text == "Shutdown")
@@ -982,6 +1051,7 @@ namespace whisperer
                     if (!checkdir())
                         return;
                     glbarray.Clear();
+                    wavstodeloncancel.Clear();
                     glbmodel = modelPathTextBox.Text;
                     glblang = langs[comboBox1.Text];
                     if (!File.Exists(glbmodel))
@@ -1035,19 +1105,15 @@ namespace whisperer
                             ;
                         Thread.Sleep(10);
                     }
-                    quitq = false;                    
+                    quitq = false;
+                    PreventSleep();
+
                     Thread thr = new Thread(() =>
                     {
                         getdurations();
                         tottime = gettottime();
                         execwhisper();
-                        quitq = true;
-                        Invoke(new Action(() =>
-                        {
-                            goButton.Text = "Go";
-                            timer1.Enabled = false;
-                            whendone();
-                        }));
+                        Invoke((Action)whendone);
                         Program.iswatch = false;
                     });
                     thr.IsBackground = true;
@@ -1580,6 +1646,26 @@ namespace whisperer
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr ShellExecute(int hwnd, string lpOperation, string lpFile,
         string lpParameters, string lpDirectory, int nShowCmd);
+
+        [Flags]
+        public enum EXECUTION_STATE : uint
+        {
+            ES_CONTINUOUS = 0x80000000,
+            ES_SYSTEM_REQUIRED = 0x00000001
+        }
+
+        [DllImport("kernel32.dll")]
+        private static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
+
+        public static void PreventSleep()
+        {
+            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_SYSTEM_REQUIRED);
+        }
+
+        public static void AllowSleep()
+        {
+            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
+        }
     }
 
     public class filenameline
@@ -1700,6 +1786,24 @@ namespace whisperer
                 if (s.StartsWith(filename))
                     return s;
             return "";
+        }
+
+        public static string GetCommandLine(this Process process)
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + process.Id))
+                {
+                    using (ManagementObjectCollection objects = searcher.Get())
+                    {
+                        return objects.Cast<ManagementBaseObject>().SingleOrDefault()?["CommandLine"]?.ToString();
+                    }
+                }
+            }
+            catch
+            {
+                return "";
+            }
         }
     }
 }
