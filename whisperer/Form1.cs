@@ -776,8 +776,6 @@ namespace whisperer
 
         void killemall()
         {
-            if (!cancel)
-                return;
             Thread thr = new Thread(() =>
             {
                 string fname;
@@ -817,8 +815,12 @@ namespace whisperer
             progressBar.Value = 0;
             goButton.Text = "Go";
             AllowSleep();
-            killemall();
-            if (cancel || Program.iswatch)
+            if (cancel)
+            {
+                killemall();
+                return;
+            }
+            if (Program.iswatch)
                 return;
             if (comboBox2.Text == "Shutdown")
                 Process.Start("shutdown", "/s /t 1");
@@ -1113,7 +1115,8 @@ namespace whisperer
                         getdurations();
                         tottime = gettottime();
                         execwhisper();
-                        Invoke((Action)whendone);
+                        if (!IsDisposed)
+                            Invoke((Action)whendone);
                         Program.iswatch = false;
                     });
                     thr.IsBackground = true;
@@ -1286,6 +1289,8 @@ namespace whisperer
 
         void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (goButton.Text == "Cancel")
+                killemall();
             savesettings();
         }
 
