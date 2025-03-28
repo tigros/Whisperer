@@ -808,7 +808,6 @@ namespace whisperer
             quitq = true;
             progressBar.Value = 0;
             goButton.Text = "Go";
-            AllowSleep();
             if (cancel)
             {
                 killemall();
@@ -1102,10 +1101,10 @@ namespace whisperer
                         Thread.Sleep(10);
                     }
                     quitq = false;
-                    PreventSleep();
 
                     Thread thr = new Thread(() =>
                     {
+                        PreventSleep();
                         getdurations();
                         tottime = gettottime();
                         execwhisper();
