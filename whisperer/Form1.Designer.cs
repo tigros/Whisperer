@@ -182,11 +182,12 @@
             // 
             this.goButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.goButton.Enabled = false;
-            this.goButton.Font = new System.Drawing.Font("Calibri", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.goButton.Location = new System.Drawing.Point(213, 454);
+            this.goButton.Font = new System.Drawing.Font("Calibri", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.goButton.ForeColor = System.Drawing.Color.MediumSeaGreen;
+            this.goButton.Location = new System.Drawing.Point(214, 452);
             this.goButton.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.goButton.Name = "goButton";
-            this.goButton.Size = new System.Drawing.Size(101, 25);
+            this.goButton.Size = new System.Drawing.Size(101, 36);
             this.goButton.TabIndex = 32;
             this.goButton.Text = "Go";
             this.goButton.UseVisualStyleBackColor = true;

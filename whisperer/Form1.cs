@@ -151,7 +151,10 @@ namespace whisperer
         void loadfilelist()
         {
             string s = readreg("files", "");
-            string[] files = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            char delim = ';';
+            if (File.Exists(s) || s.Contains('|'))
+                delim = '|';
+            string[] files = s.Split(new char[] { delim }, StringSplitOptions.RemoveEmptyEntries);
             s = readreg("langs", "");
             string[] reglangs = s.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
             s = readreg("translates", "");
@@ -184,7 +187,11 @@ namespace whisperer
             checkBox3.Checked = Convert.ToBoolean(readreg("sameasinputfolder", "False"));
             skipIfExistCheckBox.Checked = Convert.ToBoolean(readreg("skipifexists", "True"));
             checkBox2.Checked = Convert.ToBoolean(readreg("translate", "False"));
-            textBox3.Text = readreg("watchfolders", textBox3.Text);
+            string s = readreg("watchfolders", textBox3.Text);
+            if (Directory.Exists(s))
+                textBox3.Text = s;
+            else
+                textBox3.Text = s.Replace(';', '|');
             textBox4.Text = readreg("prompt", textBox4.Text);
             loadfilelist();
             Cursor = Cursors.Default;
@@ -404,7 +411,7 @@ namespace whisperer
                 while ((Process.GetProcessesByName("ffmpeg").Length >= numericUpDown1.Value ||
                     whisperq.Count >= numericUpDown1.Value) && !cancel)
                     Thread.Sleep(100);
-                filename = filename.Substring(0, filename.IndexOf(';'));
+                filename = filename.Substring(0, filename.IndexOf('|'));
                 string outname = wavname(filename);
                 if (outname == "" || cancel)
                     return;
@@ -499,7 +506,7 @@ namespace whisperer
                     string errorOutput = "";
                     proc.StartInfo.FileName = "main.exe";
                     proc.StartInfo.Domain = p.StartInfo.Domain;
-                    string[] splitrow = glbarray.FindRow(p.StartInfo.Domain).Split(';');
+                    string[] splitrow = glbarray.FindRow(p.StartInfo.Domain).Split('|');
                     string langcode = splitrow[1];
                     string translate = " ";
                     if (splitrow[2] == "1")
@@ -808,6 +815,7 @@ namespace whisperer
             quitq = true;
             progressBar.Value = 0;
             goButton.Text = "Go";
+            goButton.ForeColor = Color.MediumSeaGreen;
             if (cancel)
             {
                 killemall();
@@ -933,7 +941,7 @@ namespace whisperer
 
         void loadwatchfilelist()
         {
-            string[] folders = textBox3.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] folders = textBox3.Text.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string folder in folders)
             {
                 try
@@ -941,7 +949,7 @@ namespace whisperer
                     string[] files = Directory.GetFiles(folder);
                     foreach (string file in files)
                         if (issoundtype(file) && !glbarray.MyContains(file))
-                            glbarray.Add(file + ";" + glblang + ";" + (checkBox2.Checked ? "1" : "0"));
+                            glbarray.Add(file + "|" + glblang + "|" + (checkBox2.Checked ? "1" : "0"));
                 }
                 catch { }
             }
@@ -995,7 +1003,7 @@ namespace whisperer
             durations.Clear();
             foreach (string filename in glbarray)
             {
-                string fname = filename.Substring(0, filename.IndexOf(';'));
+                string fname = filename.Substring(0, filename.IndexOf('|'));
                 string outname = wavname(fname);
 
                 if (outname == "" || outputexists(outname))
@@ -1085,10 +1093,11 @@ namespace whisperer
                     }
                     else
                         foreach (filenameline filename in fastObjectListView1.SelectedObjects)
-                            glbarray.Add(filename.filename + ";" + getlangcode(filename.lang) + ";" + (filename.translate ? "1" : "0"));
+                            glbarray.Add(filename.filename + "|" + getlangcode(filename.lang) + "|" + (filename.translate ? "1" : "0"));
 
                     cancel = false;
                     goButton.Text = "Cancel";
+                    goButton.ForeColor = Color.Red;
                     completed = 0;
                     label5.Text = "0";
                     glbsamefolder = checkBox3.Checked;
@@ -1253,11 +1262,11 @@ namespace whisperer
             StringBuilder translatesb = new StringBuilder();
             foreach (filenameline obj in fastObjectListView1.Objects)
             {
-                sb.Append(obj.filename + ";");
+                sb.Append(obj.filename + "|");
                 langssb.Append(obj.lang + ";");
                 translatesb.Append((obj.translate ? "1" : "0") + ";");
             }
-            writereg("files", sb.ToString().TrimEnd(';'));
+            writereg("files", sb.ToString().TrimEnd('|'));
             writereg("langs", langssb.ToString().TrimEnd(';'));
             writereg("translates", translatesb.ToString().TrimEnd(';'));
         }
@@ -1292,13 +1301,13 @@ namespace whisperer
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
                 string inputf = folderBrowserDialog1.SelectedPath;
-                string[] folders = textBox3.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] folders = textBox3.Text.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
                 string s = "";
                 foreach (string f in folders)
                 {
                     if (string.Equals(inputf, f, StringComparison.InvariantCultureIgnoreCase))
                         return;
-                    s += f + ";";
+                    s += f + "|";
                 }
                 textBox3.Text = s + inputf;
             }
@@ -1770,7 +1779,7 @@ namespace whisperer
     {
         public static bool MyContains(this ArrayList arrayList, string filename)
         {
-            filename += ';';
+            filename += '|';
             foreach (string s in arrayList)
                 if (s.StartsWith(filename))
                     return true;
@@ -1779,7 +1788,7 @@ namespace whisperer
 
         public static string FindRow(this ArrayList arrayList, string filename)
         {
-            filename += ';';
+            filename += '|';
             foreach (string s in arrayList)
                 if (s.StartsWith(filename))
                     return s;
